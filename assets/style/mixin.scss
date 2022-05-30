@@ -1,0 +1,46 @@
+// scss 混入
+// 设置背景图
+@mixin setBgImg ($url: null, $position: center, $size: 100%) {
+    @if $url == null {
+      background: {
+        position: $position;
+        size: $size;
+        repeat: no-repeat;
+      }
+    }  @else {
+      background: {
+        position: $position;
+        size: $size;
+        repeat: no-repeat;
+        image: url($url);
+      }
+    }
+}
+
+// margin 居中
+@mixin marginCenter ($top:0, $bottom: 0) {
+  margin: $top auto $bottom;
+}
+
+// flex 居中
+@mixin flexCenter ($x: center, $y: center, $direction: row) {
+    display: flex;
+    justify-content: $x;
+    align-items: $y;
+    align-content: $y;
+    flex-direction: $direction;
+}
+
+// position 居中
+@mixin positionCenter ($left: 50%, $top: 50%) {
+    position: absolute;
+    left: $left;
+    top: $top;
+    @if $left == 50% and $top == 50%{
+        transform: translate(-50%, -50%);
+    } @else if  $left == 50% {
+        transform: translateX(-50%);
+    } @else {
+        transform: translateY(-50%);
+    }
+}

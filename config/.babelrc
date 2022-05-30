@@ -1,0 +1,14 @@
+
+{
+  "presets": [ // 预设
+    ["@babel/preset-env", { // 给@babel/preset-env这个预设传参
+      "targets": { // 根据配置的环境自动判断， 不设置则默认转es5
+        "esmodules": false // 不使用<script type="module"></style>
+      },
+      "configPath": "config/.browserslistrc", // 浏览器版本设置路径
+      "useBuiltIns": "usage", // 按需引入对应的 polyfill, 需要corejs
+      "corejs": "3" // 设置corejs版本
+    }]
+  ],
+  "plugins": []
+}
