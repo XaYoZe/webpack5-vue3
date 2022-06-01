@@ -101,8 +101,10 @@ vue3 js框架
 webpack // 打包工具
 webpack-cli // 脚手架
 webpack-dev-server // 本地开发服务
-html-webpack-plugin@next // html模板插件
+html-webpack-plugin // html模板插件
 mini-css-extract-plugin // 提取CSS到单独的文件
+image-minimizer-webpack-plugin // 图片压缩插件
+@squoosh/lib // 无损压缩编解码器
 css-loader // 解析js中的css文件
 style-loader // 将css文件用style标签插入html
 sass-loader // sass文件解析
@@ -111,36 +113,22 @@ postcss postcss-loader // 样式兼容处理
 postcss-preset-env // post预设环境
 babel-loader @babel/core // js兼容处理
 @babel/preset-env core-js //  babel预设环境，根据配置转换js， 按需加载需要用到corejs
-vue@next // vue3
-vue-loader@next @vue/compiler-sfc@next // vue文件解析 @vue/compiler-sfc需要vue的版本一致
+vue // vue3
+vue-loader @vue/compiler-sfc // vue文件解析 @vue/compiler-sfc需要vue的版本一致
 copy-webpack-plugin // 文件複製插件
 yeoman-generator // 脚手架生成
 
 ```
 6. 提高构建速度
+ + 使用esbuild插件
  + 使用DllPlugin拆分 bundles
  + 使用thread-loader，开启多进程打包。
 
 7. 性能优化
  + 图片压缩image-minimizer-webpack-plugin
- + 无损图片压缩插件 imagemin-gifsicle imagemin-jpegtran imagemin-optipng imagemin-svgo
- + 有损图片压缩插件 imagemin-gifsicle imagemin-mozjpeg imagemin-pngquant imagemin-svgo 
+ + 无损图片压缩插件 @squoosh/lib
 
 99. 問題處理
-+ 安裝node-sass失敗
-```
-先卸載npm uninstall node-sass -D
-在yarn add node-sass --dev
-```
-+ 遇到警告
-```
-[DEP_WEBPACK_COMPILATION_ASSETS] DeprecationWarning: Compilation.assets will be frozen in future, all modifications are deprecated.
-Do changes to assets earlier, e. g. in Compilation.hooks.processAssets.
-Make sure to select an appropriate stage from Compilation.PROCESS_ASSETS_STAGE_*
-```
-```
-  安装html-webpack-plugin@next
-```
 
 + 引入.vue模块报错
 ```
