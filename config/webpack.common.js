@@ -5,7 +5,7 @@ const htmlWebpackPlugin = require('html-webpack-plugin'); // html模板插件
 const MiniCssExtractPlugin = require('mini-css-extract-plugin'); // css提取插件
 const CopyWebpackPlugin = require('copy-webpack-plugin'); // 文件複製插件
 const { VueLoaderPlugin } = require('vue-loader'); // vue解析插件
-// const ImageMinimizerPlugin = require('image-minimizer-webpack-plugin');
+const ImageMinimizerPlugin = require('image-minimizer-webpack-plugin');
 const htmlAddScript = require('./plugin/htmlAddScript');
 module.exports = env => {
   // 获取环境变量，匹配: 开头的键作为项目文件名
@@ -148,32 +148,30 @@ module.exports = env => {
         }
       ]
     },
-    // optimization: {
-    //     minimizer: [
-    //         new ImageMinimizerPlugin({
-    //           minimizer: {
-    //             implementation: ImageMinimizerPlugin.squooshMinify,
-    //             options: {
-    //               encodeOptions: {
-    //                 mozjpeg: {
-    //                   // That setting might be close to lossless, but it’s not guaranteed
-    //                   // https://github.com/GoogleChromeLabs/squoosh/issues/85
-    //                   quality: 50,
-    //                 },
-    //                 webp: {
-    //                   lossless: 1,
-    //                 },
-    //                 avif: {
-    //                   // https://github.com/GoogleChromeLabs/squoosh/blob/dev/codecs/avif/enc/README.md
-    //                   cqLevel: 0,
-    //                 },
-    //               },
-    //             },
-    //           },
-    //         }),
-    //       ],
-    // },
+    optimization: {},
     plugins:[ // 插件
+    // 图片无损压缩
+      new ImageMinimizerPlugin({
+        minimizer: {
+          implementation: ImageMinimizerPlugin.squooshMinify,
+          options: {
+            encodeOptions: {
+              mozjpeg: {
+                // That setting might be close to lossless, but it’s not guaranteed
+                // https://github.com/GoogleChromeLabs/squoosh/issues/85
+                quality: 50, // jpg jpeg压缩比
+              },
+              webp: {
+                lossless: 1,
+              },
+              avif: {
+                // https://github.com/GoogleChromeLabs/squoosh/blob/dev/codecs/avif/enc/README.md
+                cqLevel: 0,
+              },
+            },
+          },
+        },
+      }),
       new MiniCssExtractPlugin({
         filename:
         RUN_ENV === 'local'
@@ -203,28 +201,9 @@ module.exports = env => {
         filename: `${outputPath}/index.html`, // 文件名
         chunks: ['index'], // 导入js文件
         inject: 'body', // 插入js位置
+        minify: true,
         template: `${entryPath}/index.html`, // 模板文件位置
       }),
-    //   new ImageMinimizerPlugin({ // 图片压缩
-    //     // test: /\.(jpe?g|png|gif|svg)$/i,
-    //     minimizerOptions: {
-    //       plugins: [
-    //         ['gifsicle', { interlaced: true }],
-    //         ['jpegtran', { progressive: true }],
-    //         ['optipng', { optimizationLevel: 5 }],
-    //         [
-    //           'svgo',
-    //           {
-    //             plugins: [
-    //               {
-    //                 removeViewBox: false,
-    //               },
-    //             ],
-    //           },
-    //         ],
-    //       ]
-    //     }
-    //   }),
       new webpack.DefinePlugin({ // 編譯時定義全局變量
         IS_PHONE: isPhone, // 移動端頁面
         PEOJ_NAME: JSON.stringify(proj), // 項目文件名
@@ -233,8 +212,7 @@ module.exports = env => {
         __VUE_PROD_DEVTOOLS__: false, // 啟用vue生產模式調試工具devtools
         __VUE_OPTIONS_API__: true, // 啟用vue編譯器options的api
       }),
-      new htmlAddScript([
-      'http://cdn.staticfile.org/vue/3.2.11/vue.global.min.js', {
+      new htmlAddScript([{ // 自己写的html文件添加标签功能
         tagName: 'script',
         content: `var timestamp = ${Date.now()};`
       }, {

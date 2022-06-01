@@ -3,6 +3,7 @@ const webpackMerge = require('webpack-merge'); // 配置合并方法
 const common = require('./webpack.common.js'); // 公用配置， 因为用到global.proj变量，所以在后面赋值后引入
 const path = require('path');
 const { ESBuildMinifyPlugin } = require('esbuild-loader');
+const htmlAddScript = require('./plugin/htmlAddScript');
 
 module.exports = env => {
   const proj = Object.keys(env).filter(key => /^:.*/.test(key))[0].slice(1);
@@ -47,6 +48,9 @@ module.exports = env => {
       ],
     },
     plugins: [
+      new htmlAddScript([
+        'http://cdn.staticfile.org/vue/3.2.11/vue.global.min.js' // 添加vue库
+      ])
     ]
   });
 }

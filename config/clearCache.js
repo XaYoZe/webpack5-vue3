@@ -1,6 +1,6 @@
   
 
-  // 用來清除cdn緩存
+  // 用來自动清除cdn緩存
   var reg = /timestamp\s?=\s?([0-9]+)/; // 獲取打包時間戳
   // 獲取url參數
   function getUrlParam (searchKey) {
