@@ -4,6 +4,7 @@ const common = require('./webpack.common.js'); // 公用配置， 因为用到gl
 const path = require('path');
 const { ESBuildMinifyPlugin } = require('esbuild-loader');
 const htmlAddScript = require('./plugin/htmlAddScript');
+const CompressionPlugin = require('compression-webpack-plugin');
 
 module.exports = env => {
   const proj = Object.keys(env).filter(key => /^:.*/.test(key))[0].slice(1);
@@ -50,7 +51,12 @@ module.exports = env => {
     plugins: [
       new htmlAddScript([
         'http://cdn.staticfile.org/vue/3.2.11/vue.global.min.js' // 添加vue库
-      ])
+      ]),
+      new CompressionPlugin({
+            algorithm: "gzip",
+            test: /\.(css|js|png|jpg|jpeg)$/,
+            minRatio: 0.8,
+      })
     ]
   });
 }
