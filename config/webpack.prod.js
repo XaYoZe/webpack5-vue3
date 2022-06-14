@@ -11,24 +11,25 @@ module.exports = env => {
   const outputPath = path.resolve(__dirname, `../dist/${proj}/`);
   return webpackMerge.merge(common(env), {
     mode: 'production', // 生產模式
-    externals: {
-      vue: 'Vue'
+    output: {
+      clean: true, // 在生成文件之前清空 output 目录
+    },
+    externals: { // 剥离不需要改变的依赖
+      vue: 'Vue',
     },
     devtool: false, // map映射
     optimization: {
-      minimize: true, // 开发环境不压缩
-      /* 环境变量标识 */
-      runtimeChunk: {
-        name: 'manifest',
-      },
-      splitChunks: {
+      minimize: true, // 生产环境压缩
+      runtimeChunk: true, // 提取chunk映射到单独文件, 避免无修改文件重新打包, 影响浏览器缓存
+      removeEmptyChunks: false, // 移除 chunk 为空的js
+      splitChunks: { // 拆分js文件
         minSize: 0,
         cacheGroups: {
           vendor: {
             // 优先级高于其他就不会被打包进其他chunk,如果想匹配自己定义的拆分规则，则priority需要设置为正数，优先匹配默认拆分规则就设置为负数。
             priority: 10,
             name: 'vendor',
-            test: /[\\/]node_modules[\\/]/,
+            test: /[\\/]node_modules[\\/]/, // 引入的的依赖文件打包进这个, 剥离的不打包
             chunks: 'all',
           },
           common: {
@@ -40,7 +41,7 @@ module.exports = env => {
           },
         },
       },
-      minimizer: [
+      minimizer: [ // 压缩代码工具
           new ESBuildMinifyPlugin({
             target: 'es2015',  // Syntax to compile to (see options below for possible values)
             minify: true,
@@ -50,12 +51,14 @@ module.exports = env => {
     },
     plugins: [
       new htmlAddScript([
-        'http://cdn.staticfile.org/vue/3.2.11/vue.global.min.js' // 添加vue库
+        'http://cdn.staticfile.org/vue/3.2.11/vue.global.min.js', // 添加vue库
       ]),
       new CompressionPlugin({
-            algorithm: "gzip",
-            test: /\.(css|js|png|jpg|jpeg)$/,
-            minRatio: 0.8,
+            algorithm: 'gzip', // 使用gzip压缩
+            test: /\.(js|css|json|txt|html|ico|svg)(\?.*)?$/i, // 匹配文件名
+            threshold: 1, // 对超过10k的数据压缩 设为1, 只根据压缩率来压缩
+            minRatio: 0.8, // 压缩率小于0.8才会压缩
+            deleteOriginalAssets: false // 删除原资源
       })
     ]
   });

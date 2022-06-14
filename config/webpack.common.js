@@ -235,6 +235,14 @@ module.exports = env => {
         '@store': path.join(entryPath, './store'),
         '@route': path.join(entryPath, './route'),
       }
+    },
+    stats: {
+        all: false, // 默认值
+        timings: true,  // 添加时间信息
+        colors: true, // 颜色
+        assets: true, // 静态资源
+        assetsSort: 'name', // 排序
+        cachedAssets: true, //  添加关于缓存资源的信息
     }
   }
 }

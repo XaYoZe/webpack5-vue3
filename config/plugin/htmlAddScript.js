@@ -17,9 +17,6 @@ module.exports = class htmlAddScript {
     compiler.hooks.compilation.tap(this.pluginName, (compilation => {
       // HtmlWebpackPlugin插件生命週期鉤子
       HtmlWebpackPlugin.getHooks(compilation).alterAssetTagGroups.tapAsync(this.pluginName, (data, cb) => {
-          console.log('---------------------------');
-          // console.log(compilation);
-          console.log('---------------------------');
           // 生成標籤
           this.tagList.forEach(item => {
             data[item.inject === 'body' ? 'bodyTags' : 'headTags'].push(this.createTag(item));
