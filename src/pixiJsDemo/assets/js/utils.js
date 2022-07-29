@@ -11,8 +11,8 @@ export class Keyboard {
         this.press = (event) => {
             this.keyEventList.forEach(item => {
                 if (event.key === item.key) {
-                    if (item.longTap) item.longTap();
-                    if (item.isDown && item.release) item.release();
+                    if (item.longTap) item.longTap(event);
+                    if (item.isUp && item.press) item.press(event);
                     item.isDown = true;
                     item.isUp = false;
                     event.preventDefault();
@@ -23,7 +23,7 @@ export class Keyboard {
         this.release = (event) => {
             this.keyEventList.forEach(item => {
                 if (event.key === item.key) {
-                    if (item.isDown && item.release) item.release();
+                    if (item.isDown && item.release) item.release(event);
                     item.isDown = false;
                     item.isUp = true;
                     event.preventDefault();

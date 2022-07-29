@@ -159,7 +159,7 @@ module.exports = env => {
               mozjpeg: {
                 // That setting might be close to lossless, but it’s not guaranteed
                 // https://github.com/GoogleChromeLabs/squoosh/issues/85
-                quality: 50, // jpg jpeg压缩比
+                quality: 90, // jpg jpeg压缩比
               },
               webp: {
                 lossless: 1,
