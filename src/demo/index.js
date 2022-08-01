@@ -1,7 +1,7 @@
 import { createApp } from 'vue';
 import index from './index.vue';
 import '@src/assets/style/index.scss'
-
+import router from '@src/router';
 
 
 if (!window.eruda && RUN_ENV === 'local' && IS_PHONE) {
@@ -16,6 +16,6 @@ if (!window.eruda && RUN_ENV === 'local' && IS_PHONE) {
 
 let app = createApp(index); 
 
-
+app.use(router); // 使用路由管理
 
 app.mount('#app'); // 只能在use之后使用

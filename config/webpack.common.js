@@ -227,7 +227,7 @@ module.exports = env => {
         '@Config': path.resolve(__dirname, '../config'),
         '@Utils': path.resolve(__dirname, '../assets/utils'),
         '@src': entryPath,
-        '@cpt': path.join(entryPath, './components'),
+        '@cpts': path.join(entryPath, './components'),
         '@static': path.join(entryPath, './static'),
         '@style': path.join(entryPath, './assets/style'),
         '@img': path.join(entryPath, './assets/image'),
