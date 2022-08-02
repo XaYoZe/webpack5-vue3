@@ -2,44 +2,41 @@
   <div class="key-board">
     <div class="key-grop-1">
       <div class="function-grop">
-        <div class="key" :class="[key.code]" v-for="key in Fun" :key="key.keyCode">{{key.key}}</div>
+        <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in Fun" :key="key.keyCode"><span>{{key.key}}</span></div>
       </div>
       <div class="main-grop">
         <div class="row-1">
-            <div class="key" :class="[key.code]" v-for="key in main[0]" :key="key.keyCode">{{key.key}}</div>
+            <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in main[0]" :key="key.keyCode"><span>{{key.key}}</span></div>
         </div>
         <div class="row-2">
-            <div class="key" :class="[key.code]" v-for="key in main[1]" :key="key.keyCode">{{key.key}}</div>
+            <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in main[1]" :key="key.keyCode"><span>{{key.key}}</span></div>
         </div>
         <div class="row-3">
-            <div class="key" :class="[key.code]" v-for="key in main[2]" :key="key.keyCode">{{key.key}}</div>
+            <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in main[2]" :key="key.keyCode"><span>{{key.key}}</span></div>
         </div>
         <div class="row-4">
-            <div class="key" :class="[key.code]" v-for="key in main[3]" :key="key.keyCode">{{key.key}}</div>
+            <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in main[3]" :key="key.keyCode"><span>{{key.key}}</span></div>
         </div>
         <div class="row-5">
-            <div class="key" :class="[key.code]" v-for="key in main[4]" :key="key.keyCode">{{key.key}}</div>
+            <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in main[4]" :key="key.keyCode"><span>{{key.key}}</span></div>
         </div>
       </div>
     </div>
     <div class="key-grop-2">
       <div class="function-grop-1">
-        <div class="key" :class="[key.code]" v-for="key in Fun1" :key="key.keyCode">{{key.key}}</div>
+        <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in Fun1" :key="key.keyCode"><span>{{key.key}}</span></div>
       </div>
       <div class="edit-arrow-grop">
-            <div class="key" :class="[key.code]" v-for="key in Edit" :key="key.keyCode">{{key.key}}</div>
-            <div class="key" :class="[key.code]" v-for="key in Arrow" :key="key.keyCode">{{key.key}}</div>
+            <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in Edit" :key="key.keyCode"><span>{{key.key}}</span></div>
+            <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in Arrow" :key="key.keyCode"><span>{{key.key}}</span></div>
       </div>
     </div>
     <div class="key-grop-3">
       <div class="media-grop">
-        <div class="key">m1</div>
-        <div class="key">m2</div>
-        <div class="key">m3</div>
-        <div class="key">m4</div>
+            <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in media" :key="key.keyCode"><span>{{key.key}}</span></div>
       </div>
       <div class="number-grop">
-        <div class="key" :class="[key.code]" v-for="key in Numpad" :key="key.keyCode">{{key.key}}</div>
+        <div class="key" :class="[key.code, {down: keyDownList[key.code]}]" v-for="key in Numpad" :key="key.keyCode"><span>{{key.key}}</span></div>
       </div>
     </div>
   </div>
@@ -48,6 +45,7 @@
 export default {
     data () {
         return {
+            keyDownList: {},
             Edit: [
                 {keyCode: 34, code: 'PageDown', key: 'Page\nDown'},
                 {keyCode: 33, code: 'PageUp', key: 'Page\nUp'},
@@ -174,15 +172,25 @@ export default {
                     { keyCode: 0, code: 'Function', key: 'Fn' },
                     { keyCode: 17, code: 'ControlRight', key: 'Control' },
                 ]
+            ],
+            media: [
+                { keyCode: 181, code: 'LaunchMediaPlayer', key: 'Player' },
+                { keyCode: 180, code: 'LaunchMail', key: 'Mail' },
+                { keyCode: 183, code: 'LaunchApplication2', key: 'Application2' },
+                { keyCode: 182, code: 'LaunchApplication1', key: 'Application1' },
             ]
         }
     },
     mounted () {
         document.addEventListener('keydown', (event) =>{
             console.log(event.keyCode,event.code,  event.key);
-            // event.preventDefault();
-            // return false
-        })
+            this.keyDownList[event.code] = true;
+            event.preventDefault();
+        }, false)
+        document.addEventListener('keyup', (event) => {
+            console.log(event.keyCode,event.code,  event.key);
+            this.keyDownList[event.code] = false
+        }, false)
     }
 }
 </script>
@@ -194,8 +202,8 @@ export default {
   width: max-content;
   margin: 0 auto;
   background-size: 100% 100%;
-  border: 15px solid pink;
-  background: pink;
+  border: 15px solid rgb(140, 196, 255);
+  background: rgb(140, 196, 255);
   border-radius: 10px;
   display: grid;
   grid-template-columns: max-content max-content max-content;
@@ -216,17 +224,15 @@ export default {
       grid-template-areas: "Escape . F1 F2 F3 F4 . F5 F6 F7 F8 . F9 F10 F11 F12";
     }
     .main-grop {
-      background: #fff;
       display: grid;
-      grid-template-columns: max-content;
-      grid-template-rows: repeat(5, max-content);
+      grid-template-columns: auto;
       .row-1,
       .row-2,
       .row-3,
       .row-4,
       .row-5 {
         display: grid;
-        grid-template-rows: $keySize;
+        // grid-template-rows: $keySize;
       }
       .row-1 {
         grid-template-columns: repeat(13, $keySize) calc($keySize * 2);
@@ -237,11 +243,11 @@ export default {
         grid-template-areas: 'Tab KeyQ KeyW KeyE KeyR KeyT KeyY KeyU KeyI KeyO KeyP';
       }
       .row-3 {
-        grid-template-columns: calc($keySize * 2) repeat(11, $keySize) calc($keySize * 2);
+        grid-template-columns: calc($keySize * 1.75) repeat(11, $keySize) calc($keySize * 2.25);
         grid-template-areas:  'CapsLock KeyA KeyS KeyD KeyF KeyG KeyH KeyJ KeyK KeyL Semicolon';
       }
       .row-4 {
-        grid-template-columns: calc($keySize * 2.5) repeat(10, $keySize) calc($keySize * 2.5);
+        grid-template-columns: calc($keySize * 2.25) repeat(10, $keySize) calc($keySize * 2.75);
         grid-template-areas: 'ShiftLeft KeyZ KeyX KeyC KeyV KeyB KeyN KeyM Comma Period Slash ShiftRight';
       }
       .row-5 {
@@ -251,7 +257,6 @@ export default {
   }
   .key-grop-2 {
     .function-grop-1 {
-      background: #fff;
       display: grid;
       grid-template-columns:  repeat(3, calc($keySize));
       grid-template-areas: 'PrintScreen ScrollLock Pause';
@@ -271,13 +276,11 @@ export default {
   }
   .key-grop-3 {
     .media-grop {
-      background: #fff;
       display: grid;
       grid-template-columns: repeat(4, $keySize);
       grid-template-rows: $keySize;
     }
     .number-grop {
-      background: #fff;
       display: grid;
       grid-template-columns: repeat(4, $keySize);
       grid-template-rows: repeat(5, $keySize);
@@ -293,20 +296,41 @@ export default {
      /* width: 50px; */
      min-width: $keySize;
      min-height: $keySize;
+    background: #fffa;
+    box-sizing: border-box;
+    padding: 2px;
      //   height: 50px;
-     background: rgb(160, 245, 141);
-     border: 1px solid #0003;
-     box-sizing: border-box;
-     text-align: center;
-     border-radius: 5px;
-     box-shadow: inset 0px 0px 0px 5px #0001;
-     font-size: 12px;
-     padding-top: 10px;
-     line-height: 13px;
-     text-align: left;
-     display: flex;
-     justify-content: center;
-     user-select: none;
+     &.down span{
+        background: #fff;
+     }
+     span {
+        display: block;
+        height: 100%;
+        width: 100%;
+        background: rgb(160, 245, 141);
+        border: 1px solid #0003;
+        box-sizing: border-box;
+        text-align: center;
+        border-radius: 5px;
+        box-shadow: inset 0px 0px 0px 5px #0001;
+        font-size: 12px;
+        padding-top: 10px;
+        line-height: 13px;
+        text-align: left;
+        display: flex;
+        justify-content: center;
+        user-select: none;
+        position: relative;
+        z-index: 1;
+    //     content: '';
+    //     position: absolute;
+    //     z-index: 0;
+    //     top: 0;
+    //     left: 0;
+    //     width: 100%;
+    //     height: 100%;
+    //     background: #fff;
+     }
    }
 }
 </style>
