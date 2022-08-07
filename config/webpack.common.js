@@ -7,6 +7,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin'); // 文件複製插件
 const { VueLoaderPlugin } = require('vue-loader'); // vue解析插件
 const ImageMinimizerPlugin = require('image-minimizer-webpack-plugin');
 const htmlAddScript = require('./plugin/htmlAddScript');
+
 module.exports = env => {
   // 获取环境变量，匹配: 开头的键作为项目文件名
   const proj = Object.keys(env).filter(key => /^:.*/.test(key))[0].slice(1);
@@ -16,7 +17,23 @@ module.exports = env => {
   const entryPath = path.resolve(__dirname, `../src/${proj}/`);
   const outputPath = path.resolve(__dirname, `../dist/${proj}/`);
   const NODE_ENV = (env.NODE_ENV === 'local' || env.NODE_ENV === 'beta') ? 'development' : 'production';
+  const timestamp = Date.now();
   console.log('手機：', isPhone, '打包環境：', RUN_ENV)
+  if (env.NODE_ENV === 'prod') {
+    let versionFilePath = path.resolve(__dirname, './version.json');
+    fs.readFile(versionFilePath, {encoding: 'utf-8'}, (err, data) => {
+      if (err) {
+        console.log(err);
+        return
+      }
+      let version = JSON.parse(data)
+      console.log(version, timestamp);
+      version[proj] = timestamp;
+      fs.writeFile(versionFilePath, JSON.stringify(version), {encoding: 'utf-8'}, (err) => {
+        console.log(err);
+      })
+    });
+  }
   return {
     mode: NODE_ENV,
     devtool: !(RUN_ENV === 'prod') || 'cheap-module-source-map',
@@ -41,7 +58,7 @@ module.exports = env => {
           type: 'asset', // 使用资源模块,自动选择
           parser: {
             dataUrlCondition: {
-              maxSize: 100 * 1024 // 大于100k转为链接， 否则转行内
+              maxSize: 1000 * 1024 // 大于100k转为链接， 否则转行内
             }
           },
           generator: {
@@ -59,7 +76,15 @@ module.exports = env => {
           test: /\.s?[ac]?ss$/i, // 解析css, scss, sass
           exclude: /node_modules/,
           use: [
-            RUN_ENV === 'local' ? 'style-loader' : MiniCssExtractPlugin.loader,
+            RUN_ENV === 'local' ? 'style-loader' : {
+              loader: MiniCssExtractPlugin.loader,
+              options: {
+                publicPath: '../'
+              }
+            },
+            // {
+            //   loader: path.resolve(__dirname, './loader/addWebp')
+            // },
             {
               loader: 'css-loader',
               options: {
@@ -159,7 +184,7 @@ module.exports = env => {
               mozjpeg: {
                 // That setting might be close to lossless, but it’s not guaranteed
                 // https://github.com/GoogleChromeLabs/squoosh/issues/85
-                quality: 50, // jpg jpeg压缩比
+                quality: 90, // jpg jpeg压缩比
               },
               webp: {
                 lossless: 1,
@@ -214,7 +239,7 @@ module.exports = env => {
       }),
       new htmlAddScript([{ // 自己写的html文件添加标签功能
         tagName: 'script',
-        content: `var timestamp = ${Date.now()};`
+        content: `var timestamp = ${timestamp};`
       }, {
         tagName: 'script',
         content: `${fs.readFileSync(path.resolve(__dirname, 'clearCache.js'))}`
@@ -243,6 +268,7 @@ module.exports = env => {
         assets: true, // 静态资源
         assetsSort: 'name', // 排序
         cachedAssets: true, //  添加关于缓存资源的信息
+        errors: true
     }
   }
 }
