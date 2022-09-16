@@ -19,21 +19,6 @@ module.exports = env => {
   const NODE_ENV = (env.NODE_ENV === 'local' || env.NODE_ENV === 'beta') ? 'development' : 'production';
   const timestamp = Date.now();
   console.log('手機：', isPhone, '打包環境：', RUN_ENV)
-  if (env.NODE_ENV === 'prod') {
-    let versionFilePath = path.resolve(__dirname, './version.json');
-    fs.readFile(versionFilePath, {encoding: 'utf-8'}, (err, data) => {
-      if (err) {
-        console.log(err);
-        return
-      }
-      let version = JSON.parse(data)
-      console.log(version, timestamp);
-      version[proj] = timestamp;
-      fs.writeFile(versionFilePath, JSON.stringify(version), {encoding: 'utf-8'}, (err) => {
-        console.log(err);
-      })
-    });
-  }
   return {
     mode: NODE_ENV,
     devtool: !(RUN_ENV === 'prod') || 'cheap-module-source-map',
@@ -47,7 +32,7 @@ module.exports = env => {
     },
     performance: {
       hints: 'warning', 
-      maxAssetSize: 30000000, // 整数类型（以字节为单位）控制webpack单个资产超出限制时发出性能提示
+      maxAssetSize: 3 * 1024 * 1024, // 整数类型（以字节为单位）控制webpack单个资产超出限制时发出性能提示
       maxEntrypointSize: 5000000 // 整数类型（以字节为单位） 控制webpack最大入口点文件大小超出限制时发出性能提示
     },
     module: {
@@ -58,7 +43,7 @@ module.exports = env => {
           type: 'asset', // 使用资源模块,自动选择
           parser: {
             dataUrlCondition: {
-              maxSize: 1000 * 1024 // 大于100k转为链接， 否则转行内
+              maxSize: 100 * 1024 // 大于100k转为链接， 否则转行内
             }
           },
           generator: {

@@ -6,7 +6,6 @@
 
 <script>
 export default {
-  components: {calendar, scrollNum},
   data () {
     return {
     }
@@ -19,8 +18,6 @@ export default {
 </script>
 <script setup>
 import { ref, reactive } from 'vue';
-import calendar from '@cpt/calendar';
-import scrollNum from '@cpt/scrollNum';
 let date = new Date(),
     num = ref(11), // 显示的数字
     addNum = ref(121),
