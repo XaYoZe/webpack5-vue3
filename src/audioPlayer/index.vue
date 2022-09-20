@@ -5,12 +5,12 @@
   </div>
 </template>
 <script>
+import getDevicesScreen from './components/getDevicesScreen'
 import mp3PlayToAudioJs from './components/mp3PlayToAudioJs'
 import mp3PlayToAudioTag from './components/mp3PlayToAudioTag'
-import mp3PlayToAudioJsRe from './components/mp3PlayToAudioJsRe'
 
 export default {
-  components: {mp3PlayToAudioJs, mp3PlayToAudioTag, mp3PlayToAudioJsRe},
+  components: {getDevicesScreen, mp3PlayToAudioJs, mp3PlayToAudioTag},
   data () {
     return {
       tag: '标签',

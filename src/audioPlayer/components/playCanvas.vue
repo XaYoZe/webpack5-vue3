@@ -43,9 +43,9 @@ export default {
         let y = item * this.canvas.height / 255; // 
         this.drawData[index] = { x, y };
         let grad = this.ctx.createLinearGradient(x,b - y,x, b);
-        grad.addColorStop(0,"#fff9");  // 添加漸變顏色
-        grad.addColorStop(0.333,"#e999");  // 添加漸變顏色
-        grad.addColorStop(0.666,"#75fcb896"); // 添加漸變顏色
+        grad.addColorStop(0,"#fff8");  // 添加漸變顏色
+        grad.addColorStop(0.333,"#e998");  // 添加漸變顏色
+        grad.addColorStop(0.666,"#75fcb876"); // 添加漸變顏色
         grad.addColorStop(1,"#d2f53662"); // 添加漸變顏色
         this.ctx.fillStyle = grad;
         this.ctx.fillRect(x, b - y, w, y);
