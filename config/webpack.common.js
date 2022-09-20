@@ -67,9 +67,6 @@ module.exports = env => {
                 publicPath: '../'
               }
             },
-            // {
-            //   loader: path.resolve(__dirname, './loader/addWebp')
-            // },
             {
               loader: 'css-loader',
               options: {
@@ -253,7 +250,8 @@ module.exports = env => {
         assets: true, // 静态资源
         assetsSort: 'name', // 排序
         cachedAssets: true, //  添加关于缓存资源的信息
-        errors: true
+        errors: true,
+        warnings: true
     }
   }
 }

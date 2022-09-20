@@ -33,8 +33,8 @@ export default {
             show: true,
             curYear: 2022, // 单签展示的年份
             curMonth: 3, // 当前展示的月份
-            startTime: 1641398400, // 开始时间
-            endTime: 1651939200, // 结束时间
+            startTime: 0, // 开始时间
+            endTime: 0, // 结束时间
             signInList: [1646323300, 1646409600, 1646582400, 1646668800, 1651539200], // 已签到列表
             unSignInList: [1646928000, 1646928000, 1646623300], // 未签到日期
         };
@@ -46,11 +46,11 @@ export default {
         },
         // 开始时间
         startDate () {
-            return this.getDateArr(this.startTime * 1000);
+            return this.getDateArr((this.startTime || -2209016202) * 1000);
         },
         // 结束时间
         endDate () {
-            return this.getDateArr(this.endTime * 1000);
+            return this.getDateArr((this.endTime || 4102416000) * 1000);
         },
         // 当月有多少天
         dayList () {
@@ -83,6 +83,9 @@ export default {
         }
     },
     mounted() {
+        this.curMonth = new Date().getMonth() + 1;
+        this.signInList.push(parseInt(Date.now() / 1000));
+        console.log(this.signInList);
     },
     methods: {
         // 生成时间对象
