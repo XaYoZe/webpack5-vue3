@@ -24,7 +24,7 @@
 </template>
 <script>
 export default {
-    name: 'PopSignIn',
+    name: 'calendar',
     data() {
         return {
             monthList: ['Jan', 'Feb', 'Mar', 'Ari', 'May', 'Jun', 'Jul', 'Aut', 'Sep', 'Oct', 'Nov', 'Dec'],

@@ -2,7 +2,7 @@
     <div class='audioPlayer'>
         <div class="view">
             <div class="visualization">
-              <visualization :list="arr"></visualization>
+              <visualization :list="arr" ref="visualization"></visualization>
             </div>
             <div class="ctrl">
               <div  :class="[isPlay ? 'pause' : 'play']" @click="clickStart('start')"></div>
@@ -10,7 +10,7 @@
                 <div class="timelineLength" :style="{width: `${(runTime - startPlayTime + skipPlayTime) / duration * 100}%`}"></div>
               </div>
               <div class="time">{{ currentTime }}</div>
-              <div class="voices" @click="changeVoices">
+              <div class="voices" @click.self="changeVoices">
                 <div class="voicesBar" :style="{left: `${voicesSize * 100}%`}"></div>
               </div>
             </div>
@@ -39,15 +39,15 @@ export default {
       length: 20,
       analyser: null,
       config: { attributes: true, childList: true, subtree: true },
-      arr: Array.from(new Array(32 * 2**3), () => parseInt(Math.random() * 255)),
+      arr: Array.from(new Array(16 * 2**5), () => 0), 
       index: 0, // 動畫定時器
       map3Buffer: null, // mp3數據
       audioCache: {}, // 緩存mp3數據
       isLoading: false, // 加載動畫
       gainNode: null, // 音量控制
-      voicesSize: 1, // 聲音長度
+      voicesSize: 1 - 0.05, // 聲音長度
       selectAudio: '光良 - 童话',
-      level: 4 // 柱子數量
+      level: 5 // 柱子數量
     }
   },
   created () {
@@ -61,9 +61,9 @@ export default {
       return {
         'Blazo,CL - Deacon Blu': this.audioPath('Blazo,CL - Deacon Blu.mp3'),
         'Rude Boy & White Cherry - Late Night Melancholy': this.audioPath('Rude Boy & White Cherry - Late Night Melancholy.mp3'),
-        'Lupins' : `${location.origin}${location.pathname.replace('/index.html', '/')}static/Lupins.mp3?t=${window.timestamp}`,
-        '光良 - 童话': `${location.origin}${location.pathname.replace('/index.html', '/')}static/光良 - 童话.mp3?t=${window.timestamp}`,
-        '麦振鸿 - 莫失莫忘(逍遥叹 演奏曲)': `${location.origin}${location.pathname.replace('/index.html', '/')}static/麦振鸿 - 莫失莫忘(逍遥叹 演奏曲).mp3?t=${window.timestamp}`,
+        'Lupins' : this.audioPath(`Lupins.mp3?t=${window.timestamp}`),
+        '光良 - 童话': this.audioPath(`光良 - 童话.mp3?t=${window.timestamp}`),
+        '麦振鸿 - 莫失莫忘(逍遥叹 演奏曲)': this.audioPath(`麦振鸿 - 莫失莫忘(逍遥叹 演奏曲).mp3?t=${window.timestamp}`),
       }
     },
     // 当前播放时间
@@ -134,10 +134,15 @@ export default {
     // 获取可视化数据并渲染
     visualization () {
       // console.log(this.audioCtx.getOutputTimestamp());
+      // 音波圖
+      //   var arr = new Uint8Array(this.analyser.fftSize);
+      //   this.analyser.getByteTimeDomainData(arr);
+      // 音頻圖
       var arr = new Uint8Array(this.analyser.frequencyBinCount);
       var state = this.audioCtx.state;
       this.analyser.getByteFrequencyData(arr);
       this.arr = arr;
+      this.$refs.visualization.createItem();
       this.runTime = this.audioCtx.currentTime;
       if (state === "running") {
         this.isPlay = true;
@@ -159,19 +164,22 @@ export default {
      * @param {number} timeline 开始播放的时间
      */
     startPlay (timeline = 0) {
-      this.AudioBufferSourceNode = this.audioCtx.createBufferSource();
-      // this.AudioBufferSourceNode.playbackRate // 速度控制
-      this.AudioBufferSourceNode.onended = () => { // 音樂播放結束觸發
-        console.log('結束播放');
-        cancelAnimationFrame(this.index); // 清除動畫定時器
-        this.arr = new Array(8*(2**this.num)).fill(0);
-        this.audioCtx.suspend(); // 暫停
-        this.runTime = this.startPlayTime = this.skipPlayTime = 0;
-        // this.audioCtx.listener.positionX.value = 0
-        // this.currentTime = this.duration;
-        this.isPlay = false;
-        this.AudioBufferSourceNode = null;
-      }
+        this.AudioBufferSourceNode = this.audioCtx.createBufferSource();
+        // this.AudioBufferSourceNode.playbackRate.value = 1.2 // 速度控制
+        
+        console.log(11111111111, this.audioCtx) 
+        this.AudioBufferSourceNode.onended = () => { // 音樂播放結束觸發
+            console.log('結束播放');
+            cancelAnimationFrame(this.index); // 清除動畫定時器
+            this.arr = this.arr.fill(0);
+            this.AudioBufferSourceNode.stop();
+            this.audioCtx.suspend(); // 暫停
+            this.runTime = this.startPlayTime = this.skipPlayTime = 0;
+            // this.audioCtx.listener.positionX.value = 0
+            // this.currentTime = this.duration;
+            this.isPlay = false;
+            this.AudioBufferSourceNode = null;
+        }
       this.AudioBufferSourceNode.buffer = this.audioCache[this.selectAudio];
       this.AudioBufferSourceNode.connect(this.gainNode); // 链接声音
       this.AudioBufferSourceNode.connect(this.analyser); // 链接可视化
@@ -181,12 +189,14 @@ export default {
       this.skipPlayTime = timeline || 0; // 跳过的时间
     },
     changeVoices (e) { // 改變音量大小
-       this.voicesSize = this.gainNode.gain.value = e.offsetX / e.target.offsetWidth;
+       this.gainNode.gain.value = e.offsetX / e.target.offsetWidth
+       this.voicesSize = (e.offsetX - e.target.children[0].offsetWidth / 2) / e.target.offsetWidth;
     },
     // 初始化
     initAudio () {
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       this.analyser = this.audioCtx.createAnalyser(); // 可视化处理模块
+      this.analyser.smoothingTimeConstant = 0.91; // 可視化改變速度
       this.gainNode = this.audioCtx.createGain(); // 音频处理模块
       this.analyser.fftSize = 32*(2**this.level); // 可視化柱子數量
       this.gainNode.connect(this.audioCtx.destination); // 实例链接到音频处理
@@ -222,7 +232,8 @@ export default {
 </script>
 <style lang='scss' scoped>
 .audioPlayer {
-  height: 100%;
+  width: max-content;
+  margin: 0 auto;
   position: relative;
   display: flex;
   .visualization {
@@ -232,18 +243,11 @@ export default {
     display: flex;
     justify-content: space-around;
     align-items: flex-end;
-    .bar {
-      width: 10px;
-      transition: height 100ms;
-      // height: 100%;
-      background: linear-gradient(0deg, #d2f53662, #75fcb896, #e999,#fff9);
-      // background: rgba(117, 252, 184, 0.589);
-    }
   }
   .ctrl {
     height: 100px;
     width: 800px;
-    background: turquoise;
+    background: rgba(64, 224, 208, 0.451);
     display: flex;
     align-items: center;
     justify-content: space-around;
@@ -264,27 +268,33 @@ export default {
     .timeline {
       width: 50%;
       height: 10px;
-      background: cornflowerblue;
+      background: rgb(137, 178, 254);
+      border: 1px solid seashell;
+      border-radius: 5px;
       .timelineLength {
         pointer-events: none;
         height: 100%;
         width: 0;
+        border-radius: 5px;
         background: crimson;
       }
     }
     
     .voices {
       width: 100px;
-      height: 10px;
+      height: 5px;
       background: #eac;
       position: relative;
+      border-radius: 5px;
       .voicesBar {
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
+        border: 2px solid rgb(223, 76, 59);
         width: 10px;
-        height: 20px;
-        background: darkmagenta;
+        height: 10px;
+        background: rgb(222, 241, 97);
+        border-radius: 50%;
       }
     }
   }
@@ -292,7 +302,7 @@ export default {
     // position: absolute;
     // left: 100%;
     // top: 0;
-    width: 500px;
+    width: 400px;
     > div {
       // height: 50px;
       padding: 10px 20px;
