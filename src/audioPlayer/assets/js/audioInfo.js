@@ -1,5 +1,6 @@
 // https://id3.org/id3v2.3.0
 import Mp3Info from './mp3Info';
+import FlacInfo from './flacInfo';
 export default class AudioInfo {
     constructor(config) {
         let defaultConfig = {
@@ -7,6 +8,7 @@ export default class AudioInfo {
         }
         Object.assign(defaultConfig, config)
         this.mp3Info = new Mp3Info(defaultConfig);
+        this.flacInfo = new FlacInfo(defaultConfig);
     }
     readyInfoFromUrl (url) {
         return new Promise((reslove, reject) => {
@@ -20,7 +22,8 @@ export default class AudioInfo {
         let info = {};
         console.log(buffer)
         this.uint8Array = new Uint8Array(buffer);
-        info = this.mp3Info.readyInfo(this.uint8Array);
+        info = this.flacInfo.readyInfo(this.uint8Array);
+        info = info || this.mp3Info.readyInfo(this.uint8Array);
         return info;
     }
 }
