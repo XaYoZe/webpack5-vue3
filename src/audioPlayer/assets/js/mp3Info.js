@@ -47,6 +47,7 @@ export default class Mp3Info {
     
     // 讀取buffer信息 16進制數組
     readyInfo (buffer) {
+        console.clear()
         this.uint8Array = buffer;
         this.audioInfo = {
             header: {},
@@ -82,12 +83,12 @@ export default class Mp3Info {
                 experimentalIndicator: !!Number(experimentalIndicator),
                 footerPresent: !!Number(footerPresent)
             }
-            console.log(`使用不同步: ${ !!Number(unsynchronisation) }`, `有扩展头部: ${ !!Number(extendedHeader) }`, `为测试标签: ${ !!Number(experimentalIndicator) }`);
             /*标签大小，不包括标签头的10个字节的所有标签帧的大小*/ 
             // 二進制去最高位後拼接計算
             let totalFrame = Number('0b' + Array.from(bitReadery.read(4) , (n) => this.DEC2Other(n, 2, 8).slice(1)).join('')) + 10;
             this.audioInfo.frameSize = totalFrame;
-            console.log(`標籤信息大小: ${ (totalFrame / 1024).toFixed(2) }kb`);
+            console.log(`使用不同步: ${ !!Number(unsynchronisation) }`, `\n扩展头部: ${ !!Number(extendedHeader) }`, `\n测试标签: ${ !!Number(experimentalIndicator) }`, `\n幀尾內容: ${ !!Number(footerPresent) }`);
+            console.log(`文件大小: ${bitReadery.totalSize}`,`\n標籤信息大小: ${ (totalFrame / 1024).toFixed(2) }kb`);
             // 有拓展標頭
             if (!!Number(extendedHeader)) {
                 // 拓展標頭大小
@@ -109,7 +110,7 @@ export default class Mp3Info {
                     let frameId = bitReadery.read(4).toStr();
                     // 找不到標籤
                     if (!id3Map.frameId[frameId]) {
-                        console.log('結束\n', frameId, totalFrame, bitReadery.read(totalFrame - bitReadery.index));
+                        console.log('非標籤', frameId)
                         // console.log(bitReadery.findIndex(255), bitReadery.read(500));
                         break;
                     }
@@ -141,12 +142,15 @@ export default class Mp3Info {
     
                     if (frameId === 'TXXX') { // 自定義文本內容標籤
                         let textEncoding = bitReadery.read(1).toNum();
-                        let descriptionSize = bitReadery.findIndex(0x00);
-                        let description = bitReadery.read(descriptionSize, 1).toStr(textEncoding);
+                        console.log(bitReadery.bitCache);
+                        let descriptionSize = bitReadery.findTextEnd(textEncoding);
+                        let description = bitReadery.read(descriptionSize).toStr(textEncoding);
+                        console.log(bitReadery.bitCache);
                         let text = bitReadery.read(frameEndIndex - bitReadery.index).toStr(textEncoding);
+                        console.log(bitReadery.bitCache);
                         frameData.description = description;
                         frameData.text = text;
-                        console.log(` ${description}: ${text}`);
+                        console.log(` 編碼: ${textEncoding}\n 描述: ${description}\n 文本: ${text}`);
                     } else if (frameId[0] === 'T') { // 文本內容標籤
                         let textEncoding = bitReadery.read(1).toNum();
                         let text = bitReadery.read(frameSize - 1);
@@ -157,11 +161,11 @@ export default class Mp3Info {
                         let textEncoding = bitReadery.read(1).toNum();
                         frameData.textEncoding = textEncoding;
                         // MIME 类型 結尾標識為0
-                        let mineType = bitReadery.read(bitReadery.findIndex(0x00), 1).toStr(textEncoding);
+                        let mineType = bitReadery.read(bitReadery.findTextEnd(textEncoding)).toStr(textEncoding);
                         let picType = bitReadery.read(1).toNum();
                         // console.log(textEncoding);
                         // 圖片描述 結尾標識為0
-                        let description  = bitReadery.read(bitReadery.findIndex(0x00), 1).toStr(textEncoding);;
+                        let description  = bitReadery.read(bitReadery.findTextEnd(textEncoding)).toStr(textEncoding);;
                         let picSize = frameEndIndex - bitReadery.index;
                         let picData = bitReadery.read(picSize);
                         let url = window.URL.createObjectURL(new Blob([picData], {type: mineType}));
@@ -187,7 +191,7 @@ export default class Mp3Info {
                         let language = bitReadery.read(3).toStr();
                         frameData.language = language;
                         // 描述結束長度, 標識0x00
-                        let descripSize = bitReadery.findIndex(0x00);
+                        let descripSize = bitReadery.findTextEnd(textEncoding);
                         // 描述
                         let descrip = bitReadery.read(descripSize, 1).toStr(textEncoding);
                         frameData.descrip = descrip;
@@ -212,8 +216,7 @@ export default class Mp3Info {
                     let frameId = bitReadery.read(4).toStr();
                     // 找不到標籤
                     if (!id3Map.frameId[frameId]) {
-                        console.log('結束\n', frameId, bitReadery.read(totalFrame - bitReadery.index));
-                        console.log(bitReadery.findIndex(255), bitReadery.read(500));
+                        console.log('非標籤', frameId)
                         break;
                     }
                     // 幀大小
@@ -244,12 +247,12 @@ export default class Mp3Info {
     
                     if (frameId === 'TXXX') { // 自定義文本內容標籤
                         let textEncoding = bitReadery.read(1).toNum();
-                        let descriptionSize = bitReadery.findIndex(0x00);
-                        let description = bitReadery.read(descriptionSize, 1).toStr(textEncoding);
+                        let descriptionSize = bitReadery.findTextEnd(textEncoding);
+                        let description = bitReadery.read(descriptionSize).toStr(textEncoding);
                         let text = bitReadery.read(frameEndIndex - bitReadery.index).toStr(textEncoding);
                         frameData.description = description;
                         frameData.text = text;
-                        console.log(` ${description}: ${text}`);
+                        console.log(`編碼:${textEncoding}\n描述:${description}\n內容: ${text}`);
                     } else if (frameId[0] === 'T') { // 文本內容標籤
                         let textEncoding = bitReadery.read(1).toNum();
                         let text = bitReadery.read(frameSize - 1);
@@ -260,11 +263,11 @@ export default class Mp3Info {
                         let textEncoding = bitReadery.read(1).toNum();
                         frameData.textEncoding = textEncoding;
                         // MIME 类型 結尾標識為0
-                        let mineType = bitReadery.read(bitReadery.findIndex(0x00), 1).toStr(textEncoding);
+                        let mineType = bitReadery.read(bitReadery.findTextEnd(textEncoding)).toStr(textEncoding);
                         let picType = bitReadery.read(1).toNum();
                         // console.log(textEncoding);
                         // 圖片描述 結尾標識為0
-                        let description  = bitReadery.read(bitReadery.findIndex(0x00), 1).toStr(textEncoding);;
+                        let description  = bitReadery.read(bitReadery.findTextEnd(textEncoding)).toStr(textEncoding);;
                         let picSize = frameEndIndex - bitReadery.index;
                         let picData = bitReadery.read(picSize);
                         let url = window.URL.createObjectURL(new Blob([picData], {type: mineType}));
@@ -290,9 +293,10 @@ export default class Mp3Info {
                         let language = bitReadery.read(3).toStr();
                         frameData.language = language;
                         // 描述結束長度, 標識0x00
-                        let descripSize = bitReadery.findIndex(0x00);
+                        let descripSize = bitReadery.findTextEnd(textEncoding);
                         // 描述
-                        let descrip = bitReadery.read(descripSize, 1).toStr(textEncoding);
+                        let descrip = bitReadery.read(descripSize).toStr(textEncoding);
+                        console.log(textEncoding, bitReadery.bitCache);
                         frameData.descrip = descrip;
                         // 內容 網易雲 aes-128-ecb 解碼 #14ljk_!\]&0U<'(
                         let text = bitReadery.read(frameEndIndex - bitReadery.index).toStr(textEncoding);
@@ -315,8 +319,7 @@ export default class Mp3Info {
                     let frameId = bitReadery.read(3).toStr();
                     // 找不到標籤
                     if (!id3Map.frameId[frameId]) {
-                        // console.log('結束\n', frameId, bitReadery.read(totalFrame - bitReadery.index));
-                        // console.log(bitReadery.findIndex(255), bitReadery.read(500));
+                        console.log('非標籤', frameId)
                         break;
                     }
                     // 幀大小
@@ -338,7 +341,7 @@ export default class Mp3Info {
     
                     if (frameId === 'TXX') { // 自定義文本內容標籤
                         let textEncoding = bitReadery.read(1).toNum();
-                        let descriptionSize = bitReadery.findIndex(0x00);
+                        let descriptionSize = bitReadery.findTextEnd(textEncoding);
                         let description = bitReadery.read(descriptionSize, 1).toStr(textEncoding);
                         let text = bitReadery.read(frameEndIndex - bitReadery.index).toStr(textEncoding);
                         frameData.description = description;
@@ -354,14 +357,14 @@ export default class Mp3Info {
                         let textEncoding = bitReadery.read(1).toNum();
                         frameData.textEncoding = textEncoding;
                         // MIME 类型 結尾標識為0
-                        let mineTypeSize = bitReadery.findIndex(0x00);
+                        let mineTypeSize = bitReadery.findTextEnd(textEncoding);
                         let mineType = bitReadery.read(mineTypeSize, 1).toStr(textEncoding);
                         frameData.mineType = mineType;
                         let picType = bitReadery.read(1).toNum();
                         frameData.picType = picType;
                         // console.log(textEncoding);
                         // 圖片描述 結尾標識為0
-                        let desSize = bitReadery.findIndex(0x00);
+                        let desSize = bitReadery.findTextEnd(textEncoding);
                         let description  = bitReadery.read(desSize, 1).toStr(textEncoding);;
                         frameData.description = description;
                         let picSize = frameEndIndex - bitReadery.index;
@@ -390,7 +393,7 @@ export default class Mp3Info {
                         frameData.textEncoding = textEncoding;
                         frameData.language = language;
                         // 描述結束長度, 標識0x00
-                        let descripSize = bitReadery.findIndex(0x00);
+                        let descripSize = bitReadery.findTextEnd(textEncoding);
                         // 描述
                         let descrip = bitReadery.read(descripSize, 1).toStr(textEncoding);
                         // 內容 網易雲 aes-128-ecb 解碼 #14ljk_!\]&0U<'(
@@ -411,6 +414,7 @@ export default class Mp3Info {
         } else {
            console.log(`類型:${identifier}`);
         }
+        console.log('ID3V2結束索引', this.audioInfo.frameSize);
         this.checkMp3Info(this.audioInfo.frameSize);
         this.checkID3V1();
         return this.audioInfo;
@@ -429,69 +433,93 @@ export default class Mp3Info {
     checkMp3Info (startIndex) {
         let bitReadery = new BitReader(this.uint8Array);
         bitReadery.skip(startIndex);
-        console.log('------------', startIndex);
         let mp3Header = bitReadery.read(4);
         let sliceText = this.sliceInfo(Array.from(mp3Header , (n) => this.DEC2Other(n, 2, 8)).join(''));
-        // 同步信息
         let syncInfo = sliceText(11);
-        if (syncInfo !== ''.padStart(11, 1)) {
-            let index = bitReadery.findIndex(0xff);
-            console.log('非幀頭, 從新查找', mp3Header, syncInfo);
+        let hasInfoTag = bitReadery.findIndex([0x49, 0x6E, 0x66, 0x6F], {start: bitReadery.index, end: bitReadery.index + 32});
+        let hasLAMETag = bitReadery.findIndex([0x4C, 0x41, 0x4D, 0x45], {start: bitReadery.index, end: bitReadery.index + 32});
+        
+        console.log('有info標籤', hasInfoTag);
+        console.log('有LAME標籤', hasLAMETag);
+        if (0 === bitReadery.read(24).toNum()) {
+            console.log('MP3幀頭');
+        }
+        if (syncInfo !== ''.padStart(11, 1) && hasInfoTag -1 && hasLAMETag == -1) {
+            console.log('存在髒數據, 結果不一定準確')
+            let index = bitReadery.findIndex([0, 0xff, '*', '*', '*', 0]); // 
+            let nexIndex = bitReadery.index + index + 1;
+            // console.log('非幀頭, 從新查找', syncInfo, mp3Header);
+            console.log('下個位置', nexIndex)
             // console.log(index, this.sliceUintData(index))
-            this.checkMp3Info(bitReadery.index + index);
+            this.checkMp3Info(nexIndex);
             return;
         }
-        console.log(bitReadery.index);
-        // 版本
-        let version = sliceText(2);
-        // 層
-        let layer = sliceText(2);
-        let vlMap = {'1111': 0, '1110': 1, '1101': 2, '0011': 3, '0010': 4, '0001': 5, '1011': 3, '1010': 4,'1001': 5 }
-        // crc校驗
-        let crcCheck = sliceText(1);
-        // 位率
-        let bitrateIndex = sliceText(4);
-        // 採樣率
-        let samplingFrequency = sliceText(2);
-        // 帧长调节
-        let padding = sliceText(1);
-        // 保留字
-        let private1 = sliceText(1);
-        // 聲道
-        let mode = sliceText(2);
-        // 扩充模式 当声道模式为01是才使用
-        let extension = sliceText(2);
-        // 版权
-        let copyright = sliceText(1);
-        // 原版标志
-        let original = sliceText(1);
-        // 强调模式
-        let emphasis = sliceText(2);
-        let frameLeng = Mp3Map.bitSec[layer][version] / 8 * Mp3Map.bitrate[bitrateIndex][vlMap[version + layer]] / Mp3Map.sampling[samplingFrequency][version] * 1000;
-        let totalFrame = (this.uint8Array.length - this.audioInfo.frameSize - 128) / frameLeng;
-        console.log(
-            ` 同步信息: ${syncInfo}\n`,
-            `版本: ${Mp3Map.version[version]}\n`,
-            `層: ${Mp3Map.layer[layer]}\n`,
-            `crc校驗: ${Mp3Map.crcCheck[crcCheck]}\n`,
-            `比特率:${bitrateIndex} ${Mp3Map.bitrate[bitrateIndex][vlMap[version + layer]]}kbps\n`,
-            `採樣率: ${Mp3Map.sampling[samplingFrequency][version]}\n`,
-            `帧长调节: ${Mp3Map.padding[padding]}\n`,
-            `保留字: ${private1}\n`,
-            `聲道: ${Mp3Map.mode[mode]}\n`,
-            `扩充模式: ${ mode === '01' ?  Mp3Map.extension[extension] : '無' }\n`,
-            `版权: ${Mp3Map.copyright[copyright]}\n`,
-            `原版标志: ${Mp3Map.original[original]}\n`,
-            `强调模式: ${Mp3Map.emphasis[emphasis]}\n`,
-            `每帧采样数: ${Mp3Map.bitSec[layer][version]}\n`,
-            `幀長度: ${frameLeng}\n`,
-            `時長: ${ totalFrame * Mp3Map.bitSec[layer][version] / Mp3Map.sampling[samplingFrequency][version] }`
-        )
+        window.readMp3Info = this.readMp3Info;
+        this.readMp3Info(mp3Header, this.uint8Array.length, this.audioInfo.frameSize);
+
+    }
+    readMp3Info (mp3Header, mp3Size, id3Size) {
+            function sliceInfo (src) {
+                let index = 0;
+                // console.log(src);
+                return (size) => {
+                    let res = src.slice(index, index + size)
+                    index += size;
+                    return res;
+                }
+            }
+            let sliceText = sliceInfo(Array.from(mp3Header , (num) => num.toString(2).padStart(8, 0)).join(''));
+            // 同步信息
+            let syncInfo = sliceText(11);
+            // 版本
+            let version = sliceText(2);
+            // 層
+            let layer = sliceText(2);
+            let vlMap = {'1111': 0, '1110': 1, '1101': 2, '0011': 3, '0010': 4, '0001': 5, '1011': 3, '1010': 4,'1001': 5 }
+            // crc校驗
+            let crcCheck = sliceText(1);
+            // 位率
+            let bitrateIndex = sliceText(4);
+            // 採樣率
+            let samplingFrequency = sliceText(2);
+            // 帧长调节
+            let padding = sliceText(1);
+            // 保留字
+            let private1 = sliceText(1);
+            // 聲道
+            let mode = sliceText(2);
+            // 扩充模式 当声道模式为01是才使用
+            let extension = sliceText(2);
+            // 版权
+            let copyright = sliceText(1);
+            // 原版标志
+            let original = sliceText(1);
+            // 强调模式
+            let emphasis = sliceText(2);
+            let frameLeng = Mp3Map.bitSec[layer][version] / 8 * Mp3Map.bitrate[bitrateIndex][vlMap[version + layer]] / Mp3Map.sampling[samplingFrequency][version] * 1000;
+            let totalFrame = (mp3Size - id3Size  - 128) / frameLeng;
+            console.log(
+                ` 同步信息: ${syncInfo}\n`,
+                `版本: ${Mp3Map.version[version]}\n`,
+                `層: ${Mp3Map.layer[layer]}\n`,
+                `crc校驗: ${Mp3Map.crcCheck[crcCheck]}\n`,
+                `比特率:${bitrateIndex} ${Mp3Map.bitrate[bitrateIndex][vlMap[version + layer]]}kbps\n`,
+                `採樣率: ${Mp3Map.sampling[samplingFrequency][version]}\n`,
+                `帧长调节: ${Mp3Map.padding[padding]}\n`,
+                `保留字: ${private1}\n`,
+                `聲道: ${Mp3Map.mode[mode]}\n`,
+                `扩充模式: ${ mode === '01' ?  Mp3Map.extension[extension] : '無' }\n`,
+                `版权: ${Mp3Map.copyright[copyright]}\n`,
+                `原版标志: ${Mp3Map.original[original]}\n`,
+                `强调模式: ${Mp3Map.emphasis[emphasis]}\n`,
+                `每帧采样数: ${Mp3Map.bitSec[layer][version]}\n`,
+                `幀長度: ${frameLeng}\n`,
+                `時長: ${ totalFrame * Mp3Map.bitSec[layer][version] / Mp3Map.sampling[samplingFrequency][version] }`
+            )
     }
     checkID3V1 () {
         let bitReadery = new BitReader(this.uint8Array);
         bitReadery.skip(this.uint8Array.length - 128);
-        console.log(this.uint8Array.slice(this.uint8Array.length - 128))
         let flag = bitReadery.read(3).toStr();
         if (flag === 'TAG') {
             console.log('ID3V1');
@@ -500,7 +528,7 @@ export default class Mp3Info {
             let album　 = bitReadery.read(30).toStr();
             let year = bitReadery.read(4).toStr();
             let comment = bitReadery.read(28).toStr();
-            let track = bitReadery.read(2);
+            let track = bitReadery.read();
             let genre  = bitReadery.read(1).toNum();
             if (track[0] !== 0) {
                 comment += track.toStr();
