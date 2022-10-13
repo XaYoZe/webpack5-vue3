@@ -34,9 +34,6 @@ export default class BitReader {
             case 3:
                 return utf8.decode(arr);
             default:
-                if (arr[arr.length - 1] === 0) {
-                    return Latin1.decode(arr.slice(0, -1));
-                }
                 // 超過編碼範圍的 0x7f
                 if (arr.some(val => val > 0x7f)) return gbk.decode(arr);
                 return Latin1.decode(arr);
@@ -62,7 +59,7 @@ export default class BitReader {
         this.index += count + skip;
         return this.bitCache;
     }
-    toStr (encoding) {
+    toStr (encoding = 0) {
         return BitReader.hex2Str(this, encoding);
     }
     toNum () {
@@ -73,10 +70,13 @@ export default class BitReader {
     }
     // 查找結尾
     findTextEnd (encoding) {
-        let flag  = encoding == 0 || encoding === 3 ? [0x00] : [0x00, 0x00];
+        // 编码结尾
+        let flag  = (encoding == 0 || encoding === 3) ? [0x00] : [0x00, 0x00];
         let index = this.findIndex(flag);
+        // 结尾算上标识， 模是为防止结尾有3个0
+        index = (index + flag.length) + ( index % flag.length);
         // 加上結尾字符數
-        return index + ((encoding === 0 || encoding === 3) ? 1 : 2);
+        return index;
     }
     /**
      * 在數據裡找找結束標識
