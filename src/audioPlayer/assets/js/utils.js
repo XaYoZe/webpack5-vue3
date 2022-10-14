@@ -2,14 +2,14 @@ let Latin1 = new TextDecoder('ISO-8859-1'); // ASCII
 const utf16le = new TextDecoder('utf-16le');
 const utf16be = new TextDecoder('utf-16be');
 const utf8 = new TextDecoder('utf-8');
-// let unicode = new TextDecoder('Unicode');
-let gbk = new TextDecoder('gbk');
+const gbk = new TextDecoder('gbk');
 export default class BitReader {
     buffer = [];
     index = 0; // 當前索引
     totalSize = 0;
+    bitCache = {};
 
-    static hex2Num(arr) {
+    static HexToNum(arr) {
         let length = arr.length;
         if (!length) return arr;
         let num = 0;
@@ -19,7 +19,7 @@ export default class BitReader {
         }
         return num
     }
-    static hex2Str(arr, encoding) {
+    static HexToStr(arr, encoding) {
         if (!arr.length) return '';
         if ((encoding === 0 || encoding === 3) ? arr[arr.length  - 1]=== 0 : arr[arr.length  - 1]=== 0 && arr[arr.length - 2] === 0) {
             arr = arr.slice(0, (encoding === 0 || encoding === 3) ? -1 : -2);
@@ -40,10 +40,42 @@ export default class BitReader {
         }
     }
 
+    /**
+     * 10轉其他進制並填充長度
+     * @param {*} arr 數值
+     * @param {*} radix 進制
+     * @param {*} padding 每個值長度, 不夠前面填0, 多了切除
+     * @returns 
+     */
+    static DecTranslate (arr, radix  = 2, padding = 8) {
+        if (!arr) return;
+        let str = '';
+        (arr.length ? arr : [arr]).map(num => {
+            let val = num.toString(radix);
+            str += val.length > padding ? val.slice(-padding) : val.padStart(padding, 0);
+        });
+        return str;
+    }
+
+    // 簡易截取數據方法, 對src進行取值
+    static Slice(src) {
+        let index = 0;
+        let sliceSrc = src;
+        return (size) => {
+            let res = sliceSrc.slice(index, index + size);
+            index += size;
+            if (index === sliceSrc.length) { sliceSrc = ''; };
+            return res;
+        }
+    }
+
     constructor(buffer) {
+        // 掛載方法
         this.bitCache = new Uint8Array();
         this.bitCache.__proto__.toStr = this.toStr;
         this.bitCache.__proto__.toNum = this.toNum;
+        this.bitCache.__proto__.toBit = this.toBit;
+        
         this.totalSize = buffer.length;
         if (buffer.constructor === Uint8Array) {
             this.buffer = buffer;
@@ -55,15 +87,18 @@ export default class BitReader {
         }
     }
     read (count, skip = 0) {
-        this. bitCache = this.buffer.slice(this.index, this.index + count);
+        this.bitCache = this.buffer.slice(this.index, this.index + count);
         this.index += count + skip;
         return this.bitCache;
     }
     toStr (encoding = 0) {
-        return BitReader.hex2Str(this, encoding);
+        return BitReader.HexToStr(this, encoding);
     }
     toNum () {
-        return BitReader.hex2Num(this);
+        return BitReader.HexToNum(this);
+    }
+    toBit (padding = 8) {
+        return BitReader.DecTranslate(this, 2, padding);
     }
     skip(count) {
         this.index += count;
@@ -103,5 +138,9 @@ export default class BitReader {
             index++;
         }
         return -1;
+    }
+    resetIndex (index) {
+        this.index = index;
+        this.bitCache = [];
     }
 }

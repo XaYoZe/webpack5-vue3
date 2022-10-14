@@ -1,14 +1,14 @@
 <template>
-    <div class="readyID3">
-        <div class="dropDiv" @drop.prevent="drop" @dragover.prevent>拖動文件到這裡</div>
-        <div class="info">
+    <div class="readyID3"  @drop.prevent="drop" @dragover.prevent>
+        <!-- <div class="dropDiv">拖動文件到這裡</div> -->
+        <div class="id3Info">
             <div class="row">
-               <div class="key">版本:</div><div class="value">{{audioData.version}}</div>
+               <div class="key">版本:</div><div class="value">{{ id3V2.version}}</div>
             </div>
             <div class="row">
-               <div class="key">頭幀大小:</div><div class="value">{{audioData.frameSize}} bytes</div>
+               <div class="key">頭幀大小:</div><div class="value">{{ id3V2.frameSize}} bytes</div>
             </div>
-            <div class="row" v-for="(frame, index) in audioData.frames" :key="index">
+            <div class="row" v-for="(frame, index) in  id3V2.frames" :key="index">
                 <template v-if="frame.frameId === 'APIC'">
                     <div  class="key">{{ frame.frameName }}:</div>
                     <div class="value">
@@ -42,12 +42,14 @@ export default {
         return {
             audioInfo: new audioInfo(),
             pic: '',
+            id3V2: {},
             audioData: {}
         }
     },
     mounted () {
         this.audioInfo.readyInfoFromUrl('/static/59.【1】Endless Melancholy - We Have Met Before.mp3').then(res=> {
-            this.audioData = res;
+            let {id3V2} = res;
+            this.id3V2 = id3V2;
         });
     },
     methods: {
@@ -57,7 +59,8 @@ export default {
             let file = e.dataTransfer.files[0];
             if (/audio\//.test(file.type)) {
                 let buffer = await file.arrayBuffer();
-                this.audioData = this.audioInfo.readyInfo(buffer);
+                let {id3V2} = this.audioInfo.readyInfo(buffer);
+                this.id3V2 = id3V2;
             }
         }
     }
@@ -65,6 +68,8 @@ export default {
 </script>
 <style lang="scss" scoped>
 .readyID3 {
+    min-height: 100%;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -80,9 +85,12 @@ export default {
         justify-content: center;
         align-items: center;
     }
-    .info {
+    .id3Info {
         max-width: 100%;
         padding: 0 50px;
+        img {
+            width: 100%;
+        }
         .row {
             display: flex;
         }
