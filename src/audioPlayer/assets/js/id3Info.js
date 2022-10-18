@@ -1,7 +1,7 @@
 // https://id3.org/id3v2.3.0
-import BitReader from './utils';
-import { Id3Map, Mp3Map } from './map';
-export default class Id3Info {
+let BitReader = require('./utils');
+let { Id3Map, Mp3Map } = require('./map');
+class Id3Info {
     // uint8 數組
     uint8Array = null;
     // uint8 讀取索引
@@ -404,3 +404,4 @@ export default class Id3Info {
         }
     }
 }
+module.exports = Id3Info;

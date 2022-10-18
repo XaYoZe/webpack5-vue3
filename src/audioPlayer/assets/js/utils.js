@@ -3,7 +3,7 @@ const utf16le = new TextDecoder('utf-16le');
 const utf16be = new TextDecoder('utf-16be');
 const utf8 = new TextDecoder('utf-8');
 const gbk = new TextDecoder('gbk');
-export default class BitReader {
+class BitReader {
     buffer = [];
     index = 0; // 當前索引
     totalSize = 0;
@@ -144,3 +144,5 @@ export default class BitReader {
         this.bitCache = [];
     }
 }
+
+module.exports = BitReader;

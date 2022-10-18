@@ -1,4 +1,4 @@
-export const Id3Map = {
+const Id3Map = {
     1: {
         genre: [
             '布鲁斯',
@@ -408,7 +408,7 @@ export const Id3Map = {
         }
     }
 }
-export let Mp3Map = {
+const Mp3Map = {
     version: {'00': 'MPEG 2.5', '01': '未定义', '10': 'MPEG 2', '11': 'MPEG 1'},
     layer: {'00': '未定义', '01': 'Layer 3', '10': 'Layer 2', '11': 'Layer 1'},
     crcCheck:  {'0': '校驗', '1': '不校驗'},
@@ -460,7 +460,7 @@ export let Mp3Map = {
     // 强调模式
     emphasis: {'00': '未定义', '01': '50/15ms', '10': '保留', '11': 'CCITT J.17'}
 }
-export default {
+module.exports = {
     Id3Map,
     Mp3Map
 }

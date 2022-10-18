@@ -1,7 +1,7 @@
 // https://www.crifan.com/files/doc/docbook/mpeg_vbr/release/htmls/index.html
-import BitReader from './utils';
-import { Id3Map, Mp3Map } from './map';
-export default class Mp3Info {
+const BitReader = require('./utils');
+const { Id3Map, Mp3Map } = require('./map');
+class Mp3Info {
     // uint8 數組
     uint8Array = null;
     // uint8 讀取索引
@@ -45,7 +45,7 @@ export default class Mp3Info {
             this.debug && console.log('MP3幀頭');
         }
 
-        if (syncInfo !== ''.padStart(11, 1) && infoFlag - 1 && lameFlag == -1) {
+        if (syncInfo !== ''.padStart(11, 1) && infoFlag == - 1 && lameFlag == -1 && xingFlag == -1 ) {
             this.debug && console.log('存在髒數據, 結果不一定準確')
             let index = bitReadery.findIndex([0, 0xff, '*', '*', '*', 0]); // 
             let nexIndex = bitReadery.index + index + 1;
@@ -87,7 +87,7 @@ export default class Mp3Info {
             ` 同步信息: ${syncInfo}\n`,
             `版本: ${Mp3Map.version[version]}\n`,
             `層: ${Mp3Map.layer[layer]}\n`,
-            `crc校驗: ${crcCheck} ${Mp3Map.crcCheck[crcCheck]}\n`,
+            `crc校驗: ${Mp3Map.crcCheck[crcCheck]}\n`,
             `比特率: ${bitrate}kbps\n`,
             `採樣率: ${samplingFrequency}\n`,
             `帧长调节: ${Mp3Map.padding[padding]}\n`,
@@ -103,3 +103,5 @@ export default class Mp3Info {
         )
     }
 }
+
+module.exports = Mp3Info;

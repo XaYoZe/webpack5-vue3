@@ -1,6 +1,6 @@
 // https://id3.org/id3v2.3.0
 import Mp3Info from './mp3Info';
-import Id3Info from './id3Info';
+let Id3Info = require('./id3Info');
 import FlacInfo from './flacInfo';
 export default class AudioInfo {
     constructor(config) {
