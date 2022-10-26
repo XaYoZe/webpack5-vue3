@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Document</title>
+</head>
+<style>
+  input[type=file] {
+    display: none;
+  }
+
+  #fileBox,
+  #dirFileBox,
+  #dirImgBox div {
+    width: 100px;
+    height: 150px;
+    padding: 5px;
+    border: 1px dashed #f1c000;
+    color: #b7b7b7;
+    text-align: center;
+    margin: 10px 0;
+  }
+
+  #fileBox i,
+  #dirFileBox i {
+    display: inline-block;
+    font-size: 70px;
+    line-height: 150px;
+    margin: 0 auto;
+    font-style: normal;
+  }
+
+  #fileBox.hasImg i,
+  #dirFileBox.hasImg i {
+    display: none;
+  }
+
+  #dirImgBox {
+    position: relative;
+    height: 172px;
+  }
+
+  #dirImgBox div {
+    transition: all 1s;
+    position: absolute;
+    float: left;
+    margin: 5px;
+  }
+
+  #dirImgBox::after {
+    content: "";
+    display: block;
+    clear: both;
+  }
+
+  img {
+    display: block;
+  }
+</style>
+
+<body>
+  <input id="dirFile" type="file" name="file" webkitdirectory directory>
+  <div id="dirImgBox">
+    <div id="dirFileBox" onclick="dirFile.click()">
+      <i>+</i>
+    </div>
+  </div>
+  <script>
+    // 將圖片轉為base64
+    function image2Base64(img) {
+      var canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      var ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, img.width, img.height);
+      var dataURL = canvas.toDataURL("image/png");
+      return dataURL;
+    }
+    dirFile.onchange = function (e) {
+      var imgHeightList = [];
+      var imgWidth = 200;
+      var imgLoadIndex = 0;
+      var dirImgBoxWidth = dirImgBox.offsetWidth;
+      let max = 1;
+      let index = 0;
+      colspanCount = parseInt(dirImgBoxWidth / (imgWidth + 22));
+      (new Array).forEach.call(dirImgBox.children, (v, i) => { // 清空容器
+        v.remove();
+      });
+      console.log(dirFile.files);
+      (new Array).forEach.call(dirFile.files, (v, i) => {
+        var img = new Image();
+        var div = document.createElement("div");
+        let flag = true
+        if (['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'].indexOf(v.type) === -1) {
+          return
+        }
+        if (index > max) {
+          return
+        }
+        index++;
+        console.log(v.type, v)
+        img.src = window.URL.createObjectURL(v); //创建路径对象
+
+        img.onload = function () {
+          if (flag) { // 將圖片轉為base64後再添加到dom
+            img.src = image2Base64(img)
+            flag = false
+            return
+          }
+          div.style.width = imgWidth + "px"; // 給圖片容器設置寬度
+          div.style.height = Math.ceil(imgWidth / img.width * img.height) + "px"; // 按照圖片比例給容器設置高度
+          if (imgLoadIndex < colspanCount) {
+            imgHeightList.push(Math.ceil(imgWidth / img.width * img.height));
+            div.style.top = 0 + "px";
+            div.style.left = (imgWidth + 22) * imgLoadIndex + "px";
+            imgLoadIndex++;
+          } else {
+            var minIndex = imgHeightList.indexOf(Math.min.apply(null, imgHeightList));
+            div.style.top = imgHeightList[minIndex] + 22 + "px";
+            div.style.left = (imgWidth + 22) * minIndex + "px";
+            imgHeightList[minIndex] += Math.ceil(imgWidth / img.width * img.height) + 22;
+          }
+          img.width = 200;
+          dirImgBox.style.height = Math.max.apply(null, imgHeightList) + 22 + "px";
+          div.appendChild(img);
+          imgList.push(div)
+          dirImgBox.appendChild(div);
+          // document.querySelector("svg").setAttribute("height",Math.max.apply(null,imgHeightList) + 22);
+          // window.URL.revokeObjectURL(this.src); //删除路径对象
+        }
+      })
+    }
+    window.onresize = function (e) {
+      var changeColspanCount = parseInt(dirImgBox.offsetWidth / (200 + 22));
+      if (changeColspanCount != colspanCount) {
+        colspanCount = changeColspanCount;
+        var imgHeightList = []; // 存放圖片列表
+        imgList.forEach((div, i) => {
+          if (i < colspanCount) {
+            imgHeightList.push(Math.ceil(div.offsetHeight));
+            div.style.top = 0 + "px";
+            div.style.left = (div.offsetWidth + 12) * i + "px";
+          } else {
+            var minIndex = imgHeightList.indexOf(Math.min.apply(null, imgHeightList));
+            div.style.top = imgHeightList[minIndex] + 12 + "px";
+            div.style.left = (div.offsetWidth + 12) * minIndex + "px";
+            imgHeightList[minIndex] += Math.ceil(div.offsetHeight) + 12;
+          }
+        })
+        console.log(imgHeightList)
+        dirImgBox.style.height = Math.max.apply(null, imgHeightList) + 12 + "px";
+      }
+    }
+  </script>
+  <script>
+    var fileBox = document.querySelector("#fileBox");
+    var dirImgBox = document.querySelector("#dirImgBox");
+    var colspanCount = 0;
+    var imgList = [];
+    let svgXml = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    let foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+    svgXml.setAttribute('xmlns', "http://www.w3.org/2000/svg");
+    svgXml.setAttribute('width', "100%");
+    foreignObject.setAttribute('width', "100%");
+    foreignObject.setAttribute('height', "100%");
+    svgXml.appendChild(foreignObject);
+
+    function download() {
+      foreignObject.innerHTML = document.documentElement.outerHTML;
+      svgXml.setAttribute('height', document.body.offsetHeight);
+      document.body.appendChild(svgXml);
+      var serializer = new XMLSerializer();
+      var source = '<?xml version="1.0" standalone="no"?>\r\n' + serializer.serializeToString(svgXml);
+      console.log(svgXml);
+      var image = new Image;
+      image.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+      var canvas = document.createElement('canvas');  //准备空画布
+      canvas.width = svgXml.width;
+      canvas.height = svgXml.height;
+      var context = canvas.getContext('2d');  //取得画布的2d绘图上下文
+      context.fillStyle = '#fff';//#fff设置保存后的PNG 是白色的  
+      context.fillRect(0, 0, 10000, 10000);
+      image.onload = function () {
+        document.querySelector("body").append(image)
+        context.drawImage(image, 0, 0);
+        var a = document.createElement("a");
+        a.download = "name.png";
+        a.href = canvas.toDataURL("image/png");
+        a.click();
+      };
+    }
+  </script>
+</body>
+
+</html>

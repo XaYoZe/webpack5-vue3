@@ -1,27 +1,35 @@
 <template>
   <div class="home">
-    <!-- 日历 -->
-    <calendar></calendar>
     <!-- 滚动数字 -->
-    <div class="scroll-container">
+    <!-- <div class="scroll-container">
         <div class="scroll-list">
             <scrollNum :config="scrollConfig" :select="num" :index="index" v-for="(i, index) in String(num)" :key="String(num).length - index"></scrollNum>
         </div>
         <div class="scroll-ctrl"><input type="text" v-model.number="addNum"><button @click="changeNum">添加</button></div>
+    </div> -->
+    <div class="tabs">
+        <div class="tab" v-for="(tab) in tabs" :key="tab.name" @click="tabName = tab.name">{{ tab.title }}</div>
     </div>
+    <component :is="tabName"></component>
   </div>
 </template>
 <script>
 import calendar from '@cpts/calendar';
 import scrollNum from '@cpts/scrollNum';
+import download from '@cpts/download';
 
 export default {
-  components: {calendar, scrollNum},
+  components: {calendar, scrollNum, download},
   data () {
     return {
         date: new Date(),
         num: 1, // 显示的数字
         addNum: 111,
+        tabName: 'download',
+        tabs: [
+            {name: 'calendar', title: '日曆'},
+            {name: 'download', title: '下載'}
+        ],
         scrollConfig: { // 滚轮配置
             fontSize: 20,
             width: 50,
@@ -44,6 +52,20 @@ export default {
 
 <style lang="scss" scoped>
 .home {
+    display: flex;
+    height: 500px;
+    width: 600px;
+    .tabs {
+        width: 200px;
+        background: #eee8;
+        .tab {
+            height: 30px;
+            text-align: center;
+            background: #ace;
+            border: 1px solid salmon;
+            color: #fff;
+        }
+    }
     .scroll-container {
         .scroll-list {
             display: flex;
