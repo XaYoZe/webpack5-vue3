@@ -18,7 +18,7 @@ export default {
             cache: {
 
             },
-            skipStyleList: ['background']
+            importantList: ['backgroundSize']
         }
     },
     mounted () {
@@ -70,7 +70,7 @@ export default {
             let count = 0;
             for  (let key in computedStyle)  {
                 let style = computedStyle[key];
-                if (!isNaN(key) || !style || typeof style === 'function' || this.skipStyleList.includes(key)) continue;
+                if (!isNaN(key) || !style || typeof style === 'function') continue;
                 let styleName = key.replace(/([A-Z])/g, '-$1').toLocaleLowerCase();
                 /^webkit-/.test(styleName) && (styleName = '-' + styleName);
                 if (isNaN(key) && style && typeof style === 'string') {
@@ -85,7 +85,7 @@ export default {
                         }
                         style = newStyle;
                      }
-                     if (styleName === 'background-size') {
+                     if (this.importantList.includes(key)) {
                         style+= '!important';
                      }
                     styleStr += `${styleName}: ${style};`

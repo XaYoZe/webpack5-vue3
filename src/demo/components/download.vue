@@ -155,7 +155,7 @@ export default {
     .right {
       grid-area: right;
       background: url("~@img/29.jpg") no-repeat right 0 / 100px,
-        url(~@img/08.jpg) no-repeat right 0 / 100px;
+        url(~@img/08.jpg) no-repeat right 50px / 100px;
       justify-content: center;
       align-items: center;
       img {
