@@ -17,7 +17,8 @@ export default {
             },
             cache: {
 
-            }
+            },
+            skipStyleList: ['background']
         }
     },
     mounted () {
@@ -58,47 +59,98 @@ export default {
                this.createSvg();
            });
         },
+        createSelector (el) {
+            let className = '';
+            let tagName = `${el.tagName.toLocaleLowerCase()}`;
+            el.classList.forEach(item => { className += '.' + item})
+            return tagName + className
+        },
+        async createStyle (computedStyle, el) {
+            let styleStr = '';
+            let count = 0;
+            for  (let key in computedStyle)  {
+                let style = computedStyle[key];
+                if (!isNaN(key) || !style || typeof style === 'function' || this.skipStyleList.includes(key)) continue;
+                let styleName = key.replace(/([A-Z])/g, '-$1').toLocaleLowerCase();
+                /^webkit-/.test(styleName) && (styleName = '-' + styleName);
+                if (isNaN(key) && style && typeof style === 'string') {
+                    count++;
+                    if (/url\(.*\)/.test(style) && !/url\(data:.*\)/.test(style)) {
+                        let urlReg = /url\(["'](.*?)['"]\)/g;
+                        let newStyle = style;
+                        let urlExec = '';
+                        while (urlExec = urlReg.exec(style)) {
+                           let src = await this.getPic(urlExec[1]);
+                           newStyle = newStyle.replace(urlExec[1], src);
+                        }
+                        style = newStyle;
+                     }
+                     if (styleName === 'background-size') {
+                        style+= '!important';
+                     }
+                    styleStr += `${styleName}: ${style};`
+                }
+            }
+            if (el) {
+                return `${this.createSelector(el)}{${styleStr}}`;
+            }
+            return styleStr
+        },
+        async hasPseudoElement (node, tag) {
+            let beforeStyle = window.getComputedStyle(node, 'before');
+            let afterStyle = window.getComputedStyle(node, 'after');
+            if (beforeStyle.content == "none" && beforeStyle.content == "none") return '';
+            let beforeStyleText = '';
+            let afterStyleText = '';
+            let selector = this.createSelector(tag);
+            if (beforeStyle.content !== "none") {
+                beforeStyleText = `${selector}::before { ${await this.createStyle(beforeStyle)} }`;
+            }
+            if (afterStyle.content !== "none") {
+                afterStyleText = `${selector}::after { ${await this.createStyle(afterStyle)} }`;
+            }
+            return `${beforeStyleText}${afterStyleText}`;
+        },
         // 复制节点
-        async compile (node, conf) {
+        // 安卓grid樣式有問題
+        async compile (node, conf, layer = 1, index = 1) {
             if (node.nodeType == 1) {
                 let tag = node.cloneNode();
+                tag.classList.add(`flag-${layer}-${index}`);
                 if (node.tagName === 'IMG') {
                     tag.src = await this.getPic(node.src);
                 }
                 let style = window.getComputedStyle(node);
-                for (var key in tag.style) {
-                    let styleText = style[key];
-                    if (/^grid/.test(key)) {
-                        if (styleText === 'none') {
-                            continue
-                        }
-                        console.log(key, styleText);
-                    };
-                    if (styleText && typeof styleText === 'string' && styleText !== tag.style[key]) {
-                        
-                        if (/url\(.*\)/.test(styleText) && !/url\(data:.*\)/.test(styleText)) {
-                            let urlReg = /url\(["'](.*?)['"]\)/g;
-                            let newStyle = styleText;
-                            let urlExec = '';
-                            // console.log(`${key}: ${styleText}`);
-                            while (urlExec = urlReg.exec(styleText)) {
-                               console.log(key, urlExec[1]);
-                               let src = await this.getPic(urlExec[1]);
-                               newStyle = newStyle.replace(urlExec[1], src);
-                            }
-                            styleText = newStyle;
-                        }
-                        try {
-                            tag.style[key] = styleText;
-                        } catch (err) {
-                            console.log(err);
-                        }
-                    }
-                }
+                let styleTag = document.createElement('style');
+                let styleText = await this.hasPseudoElement(node, tag);
+                styleTag.innerHTML = styleText + `${ await this.createStyle(style, tag)}`;
                 conf.appendChild(tag);
+                conf.append(styleTag);
+                // for (var key in tag.style) {
+                //     let styleText = style[key];
+                //     if (styleText && typeof styleText === 'string' && styleText !== tag.style[key]) {
+                //         let styleText = style[key];
+                //         if (!isNaN(key) || !styleText || typeof styleText === 'function') continue;
+                //         if (/url\(.*\)/.test(styleText) && !/url\(data:.*\)/.test(styleText)) {
+                //             let urlReg = /url\(["'](.*?)['"]\)/g;
+                //             let newStyle = styleText;
+                //             let urlExec = '';
+                //             while (urlExec = urlReg.exec(styleText)) {
+                //                let src = await this.getPic(urlExec[1]);
+                //                newStyle = newStyle.replace(urlExec[1], src);
+                //             }
+                //             styleText = newStyle;
+                //         }
+                //         try {
+                //             tag.style[key] = styleText;
+                //         } catch (err) {
+                //             console.log(err);
+                //         }
+                //     }
+                // }
                  if (node.childNodes.length > 0) {
                      for  (let i = 0; i < node.childNodes.length; i++) {
-                        await this.compile(node.childNodes[i], tag);
+                        await this.compile(node.childNodes[i], tag, layer + 1 , i + 1);
                      }
                  }
             }
@@ -124,14 +176,13 @@ export default {
             var serializer = new XMLSerializer();
             var source = '<?xml version="1.0" standalone="no"?>\r\n' + serializer.serializeToString(svgXml);
        
-
-            let url = window.URL.createObjectURL(new Blob([source]));
+            let url = window.URL.createObjectURL(new Blob([source], {type: 'image/svg+xml'}));
             console.log(url);
                  
-            let a = document.createElement('a');
-            a.href = url;
-            a.download = "download";
-            a.click();
+            // let a = document.createElement('a');
+            // a.href = url;
+            // a.download = "download";
+            // a.click();
             // 加载成图片
             var image = new Image;
             image.width = width;

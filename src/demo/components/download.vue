@@ -21,11 +21,11 @@
             </ul>
             </div>
         </div>
-      <div id="dirImgBox" ref="dirImgBox">
+      <!-- <div id="dirImgBox" ref="dirImgBox">
         <div id="dirFileBox" onclick="dirFile.click()">
           <i>+</i>
         </div>
-      </div>
+      </div> -->
     </screenshot>
   </div>
 </template>
@@ -116,6 +116,54 @@ export default {
 <style lang="scss">
 .view {
   width: 100%;
+  
+  .main {
+    width: 250px;
+    // height: 500px;
+    position: relative;
+    background: radial-gradient(#fff, #f1c000 , #bad);
+    display: grid;
+    grid-template-areas: "top top top" "left right right"  "left right right" ;
+    grid-template-columns: 50px 100px 100px;
+    grid-template-rows: 50px 100px 100px;
+    .top {
+      grid-area: top;
+      // line-height: 50px;
+      font-size: 16px;
+      color: aqua;
+      background: #cad;
+      line-height: 50px;
+      &::before {
+         content: '';
+        vertical-align: middle;
+        display: inline-block;
+        width: 50px;
+        height: 50px;
+        background: #cba;
+        border-radius: 50%;
+      }
+    }
+    .left {
+      grid-area: left;
+      background: #cba;
+      input {
+        width: 100%;
+        font-size: 24px;
+        color: #bad;
+      }
+    }
+    .right {
+      grid-area: right;
+      background: url("~@img/29.jpg") no-repeat right 0 / 100px,
+        url(~@img/08.jpg) no-repeat right 0 / 100px;
+      justify-content: center;
+      align-items: center;
+      img {
+        // height: 100%;
+        width: 100px;
+      }
+    }
+  }
   input[type="file"] {
     display: none;
   }
@@ -184,42 +232,5 @@ export default {
   //     display: none;
   //   }
 
-  .main {
-    // width: 200px;
-    // height: 500px;
-    position: relative;
-    background: radial-gradient(#fff, #f1c000 , #bad);
-    display: grid;
-    grid-template: "top top top" 50px
-                   "left right right" 100px
-                   "left right right" 100px / 50px 100px 100px;
-    .top {
-      grid-area: top;
-      // line-height: 50px;
-      font-size: 16px;
-      color: aqua;
-      background: #cad;
-    }
-    .left {
-      grid-area: left;
-      background: #cba;
-      input {
-        width: 100%;
-        font-size: 24px;
-        color: #bad;
-      }
-    }
-    .right {
-      grid-area: right;
-      background: url("~@img/29.jpg") no-repeat right 0 / 100px,
-        url(~@img/08.jpg) no-repeat right 0 / 100px;
-      justify-content: center;
-      align-items: center;
-      img {
-        // height: 100%;
-        width: 100px;
-      }
-    }
-  }
 }
 </style>
