@@ -10,7 +10,7 @@
     />
     <button @click="clickDownLoad">下載</button>
     <screenshot ref="screenshot">
-        <div class="main">
+        <div class="main" ref="main">
             <div class="top">你不是真正的快樂</div>
             <div class="left">
               <input type="text" value="123">
@@ -31,16 +31,23 @@
 </template>
 <script>
 import screenshot from "@cpts/screenshot";
+import NodeCapture from '@js/NodeCapture';
 export default {
   components: { screenshot },
   data() {
     return {
       imgList: [],
+      nodeCapture: null,
     };
+  },
+  mounted () {
+    console.log();
+    this.nodeCapture = new NodeCapture({el: document.body});
+    window.nodeCapture = this.nodeCapture;
   },
   methods: {
     clickDownLoad () {
-        this.$refs.screenshot.init();
+        this.nodeCapture.shot();        
     },
     bufferToBase64(array) {
       let base64 = "";
