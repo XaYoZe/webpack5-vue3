@@ -12,11 +12,27 @@ export default class NodeCapture {
     cache = {};
     // 加important的屬性, 部分屬性錯亂是可以加上試試
 
-    importantList = ['backgroundSize'];
+    importantList = [
+        'borderSize'];
+    defaultStyle = {};
     //
     constructor(options = {}) {
         this.el = options.el;
         this.options = options;
+        this.initDefault();
+    }
+    initDefault () {
+        let iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.srcdoc = '<div></div><span></span><input type="text">';
+        document.body.append(iframe);
+        iframe.onload = (e) => {
+            // console.log(getComputedStyle(iframe.contentDocument.querySelector('div')).padding, iframe.contentDocument.querySelector('div'));
+            let div = iframe.contentDocument.querySelector('div');
+            let span = iframe.contentDocument.querySelector('span');
+            this.defaultStyle[div.tagName] = window.getComputedStyle(div);
+            this.defaultStyle[span.tagName] = window.getComputedStyle(span);
+        }
     }
     // uint8Array 转bese64
     bufferToBase64(array) {
@@ -44,11 +60,6 @@ export default class NodeCapture {
             console.log('获取图片错误');
         })
     }
-    // init(el) {
-    //     this.compile(el, this.frag).then(res => {
-    //         this.createSvg();
-    //     });
-    // }
     // 創建選擇器
     createSelector(el) {
         let className = '';
@@ -60,28 +71,26 @@ export default class NodeCapture {
     async createStyle(computedStyle, el) {
         let styleStr = '';
         let count = 0;
-        for (let key in computedStyle) {
-            let style = computedStyle[key];
-            if (!isNaN(key) || !style || typeof style === 'function') continue;
-            let styleName = key.replace(/([A-Z])/g, '-$1').toLocaleLowerCase();
-            /^webkit-/.test(styleName) && (styleName = '-' + styleName);
-            if (isNaN(key) && style && typeof style === 'string') {
-                count++;
-                if (/url\(.*\)/.test(style) && !/url\(data:.*\)/.test(style)) {
-                    let urlReg = /url\(["'](.*?)['"]\)/g;
-                    let newStyle = style;
-                    let urlExec = '';
-                    while (urlExec = urlReg.exec(style)) {
-                        let src = await this.getPic(urlExec[1]);
-                        newStyle = newStyle.replace(urlExec[1], src);
-                    }
-                    style = newStyle;
+        let styleName = '';
+        let styleText = '';
+        while (styleName = computedStyle.item(count)) {
+            count++;
+            styleText = computedStyle.getPropertyValue(styleName);
+            if (el && styleText === this.defaultStyle[el.tagName]?.getPropertyValue(styleName)) continue;
+            if (/url\(.*\)/.test(styleText) && !/url\(data:.*\)/.test(styleText)) {
+                let urlReg = /url\(["'](.*?)['"]\)/g;
+                let newStyle = styleText;
+                let urlExec = '';
+                while (urlExec = urlReg.exec(styleText)) {
+                    let src = await this.getPic(urlExec[1]);
+                    newStyle = newStyle.replace(urlExec[1], src);
                 }
-                if (this.importantList.includes(key)) {
-                    style += '!important';
-                }
-                styleStr += `${styleName}: ${style};`
+                styleText = newStyle;
             }
+            if (this.importantList.includes(styleName)) {
+                styleText += '!important';
+            }
+            styleStr += `${styleName}: ${styleText};`
         }
         if (el) {
             return `${this.createSelector(el)}{${styleStr}}`;
@@ -109,10 +118,28 @@ export default class NodeCapture {
         // 節點
         if (node.nodeType == 1) {
             let tag = node.cloneNode();
+            switch (node.tagName) {
+                case 'IMG': // 處理圖片標籤 
+                    tag.src = await this.getPic(node.src);
+                    break;
+                    case 'INPUT': // 處理input text 標籤
+                        if (node.getAttribute('type') === 'text') {
+                            tag = document.createElement('div');
+                            Array.from(node.attributes, (item) => { 
+                                tag.setAttribute(item.name, item.value);
+                                tag.innerHTML = node.value;
+                            })
+                            console.log(tag);
+                        }
+                        break;
+                    case 'CANVAS': // 處理canvas標籤
+                        tag = document.createElement('img');
+                        tag.src = node.toDataURL('image/png');
+                        break
+                    default:
+                            break;
+                    }
             tag.classList.add(`flag-${layer}-${index}`);
-            if (node.tagName === 'IMG') {
-                tag.src = await this.getPic(node.src);
-            }
             let style = window.getComputedStyle(node);
             let styleTag = document.createElement('style');
             let styleText = await this.hasPseudoElement(node, tag);
@@ -141,8 +168,13 @@ export default class NodeCapture {
         foreignObject.setAttribute('width', this.width);
         foreignObject.setAttribute('height', this.height);
         svgXml.appendChild(foreignObject);
-        foreignObject.append(this.frag);
-        // 格式化
+        let html = document.createElement('html');
+        let body = document.createElement('body');
+        body.append(this.frag);
+        html.append(body);
+        foreignObject.append(html);
+            document.body.append(svgXml);
+            // 格式化
         var serializer = new XMLSerializer();
         return '<?xml version="1.0" standalone="no"?>\r\n' + serializer.serializeToString(svgXml);
     }

@@ -1,5 +1,8 @@
 <template>
   <div class="view">
+    <div v-show="false">
+        <div></div>
+    </div>
     <input
       id="dirFile"
       @change="changeFile"
@@ -9,13 +12,14 @@
       directory
     />
     <button @click="clickDownLoad">下載</button>
+    <canvas ref="canvas"></canvas>
     <screenshot ref="screenshot">
         <div class="main" ref="main">
             <div class="top">你不是真正的快樂</div>
             <div class="left">
               <input type="text" value="123">
             </div>
-            <div class="right"><img src="@img/07.jpeg">
+            <div class="right"><img ref="img" title="DSASDA" src="@img/07.jpeg">
             <ul>
                <li>1</li>
             </ul>
@@ -42,10 +46,19 @@ export default {
   },
   mounted () {
     console.log();
+    this.initCanvas();
     this.nodeCapture = new NodeCapture({el: document.body});
     window.nodeCapture = this.nodeCapture;
   },
   methods: {
+    initCanvas () {
+        let ctx = this.$refs.canvas.getContext('2d');
+        ctx.fillStyle = '#acdacd';
+        this.$refs.img.onload = () => {
+            ctx.drawImage(this.$refs.img, 0, 0);
+            ctx.fillRect(10,10, 20, 20);
+        }
+    },
     clickDownLoad () {
         this.nodeCapture.shot();        
     },
@@ -120,7 +133,7 @@ export default {
   },
 };
 </script>
-<style lang="scss">
+<style scoped lang="scss">
 .view {
   width: 100%;
   
@@ -133,6 +146,12 @@ export default {
     grid-template-areas: "top top top" "left right right"  "left right right" ;
     grid-template-columns: 50px 100px 100px;
     grid-template-rows: 50px 100px 100px;
+    ul {
+        padding-left: 50px;
+        li {
+            padding-block: 10px 20px;
+        }
+    }
     .top {
       grid-area: top;
       // line-height: 50px;
@@ -157,6 +176,7 @@ export default {
         width: 100%;
         font-size: 24px;
         color: #bad;
+        border: 1px solid;
       }
     }
     .right {
