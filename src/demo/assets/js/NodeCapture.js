@@ -23,15 +23,18 @@ export default class NodeCapture {
     }
     initDefault () {
         let iframe = document.createElement('iframe');
+        let srcdoc = '';
+        let tagList = ['div', 'span', 'p', 'ul', 'li', 'input', 'img', 'a'];
         iframe.style.display = 'none';
-        iframe.srcdoc = '<div></div><span></span><input type="text">';
+        iframe.srcdoc = '';
         document.body.append(iframe);
         iframe.onload = (e) => {
-            // console.log(getComputedStyle(iframe.contentDocument.querySelector('div')).padding, iframe.contentDocument.querySelector('div'));
-            let div = iframe.contentDocument.querySelector('div');
-            let span = iframe.contentDocument.querySelector('span');
-            this.defaultStyle[div.tagName] = window.getComputedStyle(div);
-            this.defaultStyle[span.tagName] = window.getComputedStyle(span);
+            tagList.forEach(item => {
+                let dom = iframe.contentDocument.createElement(item);
+                iframe.contentDocument.body.append(dom);
+                this.defaultStyle[dom.tagName] = window.getComputedStyle(dom);
+                console.log(this.defaultStyle[dom.tagName]);
+            })
         }
     }
     // uint8Array 转bese64
@@ -53,11 +56,13 @@ export default class NodeCapture {
             mineType = blob.type;
             return new Uint8Array(await blob.arrayBuffer());
         }).then(res => {
+            console.log(src, res, 22222222222222);
             let base64 = `data:${mineType};base64,` + this.bufferToBase64(res);
             this.cache[src] = base64;
             return base64
         }).catch(err => {
             console.log('获取图片错误');
+            return Promise.reject(err);
         })
     }
     // 創建選擇器
@@ -82,8 +87,12 @@ export default class NodeCapture {
                 let newStyle = styleText;
                 let urlExec = '';
                 while (urlExec = urlReg.exec(styleText)) {
-                    let src = await this.getPic(urlExec[1]);
-                    newStyle = newStyle.replace(urlExec[1], src);
+                    try {
+                        let src = await this.getPic(urlExec[1]);
+                        newStyle = newStyle.replace(urlExec[1], src);
+                    } catch (err) {
+
+                    }
                 }
                 styleText = newStyle;
             }
@@ -120,8 +129,40 @@ export default class NodeCapture {
             let tag = node.cloneNode();
             switch (node.tagName) {
                 case 'IMG': // 處理圖片標籤 
-                    tag.src = await this.getPic(node.src);
+                    try {
+                        tag.src = await this.getPic(node.src);
+                        console.log(tag.src, 1111111111111);
+                    } catch (err) {
+                        tag.removeAttribute('src');
+                    }
                     break;
+                case 'CANVAS': // 處理canvas標籤
+                        tag = document.createElement('img');
+                        Array.from(node.attributes, (item) => { 
+                            tag.setAttribute(item.name, item.value);
+                            tag.innerHTML = node.value;
+                        })
+                        try {
+                            tag.src = canvas.toDataURL("image/png");
+                        } catch (err) {
+                            tag.removeAttribute('src');
+                            console.log('video轉換錯誤', err)
+                        }
+                        break
+                case 'video':
+                        let canvas = this.createCanvas(node);
+                        tag = document.createElement('img');
+                        Array.from(node.attributes, (item) => { 
+                            tag.setAttribute(item.name, item.value);
+                            tag.innerHTML = node.value;
+                        })
+                        try {
+                            tag.src = canvas.toDataURL("image/png");
+                        } catch (err) {
+                            tag.removeAttribute('src');
+                            console.log('video轉換錯誤', err)
+                        }
+                        break;
                     case 'INPUT': // 處理input text 標籤
                         if (node.getAttribute('type') === 'text') {
                             tag = document.createElement('div');
@@ -132,10 +173,6 @@ export default class NodeCapture {
                             console.log(tag);
                         }
                         break;
-                    case 'CANVAS': // 處理canvas標籤
-                        tag = document.createElement('img');
-                        tag.src = node.toDataURL('image/png');
-                        break
                     default:
                             break;
                     }
