@@ -33,7 +33,6 @@ export default class NodeCapture {
                 let dom = iframe.contentDocument.createElement(item);
                 iframe.contentDocument.body.append(dom);
                 this.defaultStyle[dom.tagName] = window.getComputedStyle(dom);
-                console.log(this.defaultStyle[dom.tagName]);
             })
         }
     }
@@ -56,7 +55,6 @@ export default class NodeCapture {
             mineType = blob.type;
             return new Uint8Array(await blob.arrayBuffer());
         }).then(res => {
-            console.log(src, res, 22222222222222);
             let base64 = `data:${mineType};base64,` + this.bufferToBase64(res);
             this.cache[src] = base64;
             return base64
@@ -123,7 +121,8 @@ export default class NodeCapture {
         return `${beforeStyleText}${afterStyleText}`;
     }
     // 复制节点
-    async compile(node, conf, layer = 1, index = 1) {
+    async compile(node, conf, layer = '1') {
+        console.log(node, node.nodeType);
         // 節點
         if (node.nodeType == 1) {
             let tag = node.cloneNode();
@@ -131,7 +130,6 @@ export default class NodeCapture {
                 case 'IMG': // 處理圖片標籤 
                     try {
                         tag.src = await this.getPic(node.src);
-                        console.log(tag.src, 1111111111111);
                     } catch (err) {
                         tag.removeAttribute('src');
                     }
@@ -170,13 +168,12 @@ export default class NodeCapture {
                                 tag.setAttribute(item.name, item.value);
                                 tag.innerHTML = node.value;
                             })
-                            console.log(tag);
                         }
                         break;
                     default:
                             break;
                     }
-            tag.classList.add(`flag-${layer}-${index}`);
+            tag.classList.add(`layer-${layer}`);
             let style = window.getComputedStyle(node);
             let styleTag = document.createElement('style');
             let styleText = await this.hasPseudoElement(node, tag);
@@ -185,7 +182,7 @@ export default class NodeCapture {
             conf.append(styleTag);
             if (node.childNodes.length > 0) {
                 for (let i = 0; i < node.childNodes.length; i++) {
-                    await this.compile(node.childNodes[i], tag, layer + 1, i + 1);
+                    await this.compile(node.childNodes[i], tag, `${layer}-${i + 1}`);
                 }
             }
         }
