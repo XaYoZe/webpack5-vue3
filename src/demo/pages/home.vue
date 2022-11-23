@@ -53,8 +53,6 @@ export default {
 <style lang="scss" scoped>
 .home {
     display: flex;
-    height: 500px;
-    width: 600px;
     .tabs {
         width: 200px;
         background: #eee8;

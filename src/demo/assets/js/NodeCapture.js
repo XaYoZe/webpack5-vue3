@@ -24,7 +24,7 @@ export default class NodeCapture {
     initDefault () {
         let iframe = document.createElement('iframe');
         let srcdoc = '';
-        let tagList = ['div', 'span', 'p', 'ul', 'li', 'input', 'img', 'a'];
+        let tagList = ['h1','h2','div', 'span', 'p', 'ul', 'li', 'input', 'img', 'a'];
         iframe.style.display = 'none';
         iframe.srcdoc = '';
         document.body.append(iframe);
@@ -80,6 +80,16 @@ export default class NodeCapture {
             count++;
             styleText = computedStyle.getPropertyValue(styleName);
             if (el && styleText === this.defaultStyle[el.tagName]?.getPropertyValue(styleName)) continue;
+            if (/var\(.*\)/.test(styleText)) {
+                let varNameReg = /url\(.*\)/g;
+                while (urlExec = varNameReg.exec(styleText)) {
+                    try {
+                        console.log('變量', urlExec);
+                    } catch (err) {
+
+                    }
+                }
+            }
             if (/url\(.*\)/.test(styleText) && !/url\(data:.*\)/.test(styleText)) {
                 let urlReg = /url\(["'](.*?)['"]\)/g;
                 let newStyle = styleText;
@@ -122,7 +132,6 @@ export default class NodeCapture {
     }
     // 复制节点
     async compile(node, conf, layer = '1') {
-        console.log(node, node.nodeType);
         // 節點
         if (node.nodeType == 1) {
             let tag = node.cloneNode();
@@ -144,7 +153,7 @@ export default class NodeCapture {
                             tag.src = canvas.toDataURL("image/png");
                         } catch (err) {
                             tag.removeAttribute('src');
-                            console.log('video轉換錯誤', err)
+                            console.log('圖片轉換錯誤', err)
                         }
                         break
                 case 'video':
@@ -158,7 +167,7 @@ export default class NodeCapture {
                             tag.src = canvas.toDataURL("image/png");
                         } catch (err) {
                             tag.removeAttribute('src');
-                            console.log('video轉換錯誤', err)
+                            console.log('視頻轉換錯誤', err)
                         }
                         break;
                     case 'INPUT': // 處理input text 標籤
@@ -222,8 +231,8 @@ export default class NodeCapture {
     }
     createCanvas (image) {
         var canvas = document.createElement('canvas');  //准备空画布
-        canvas.width = this.width * window.devicePixelRatio;
-        canvas.height = this.height * window.devicePixelRatio;
+        canvas.width = (this.width || image.offsetWidth) * window.devicePixelRatio;
+        canvas.height = (this.height || image.offsetWidth) * window.devicePixelRatio;
         var context = canvas.getContext('2d');  //取得画布的2d绘图上下文
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
         return canvas;
