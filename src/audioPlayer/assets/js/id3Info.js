@@ -27,7 +27,7 @@ class Id3Info {
         this.bitReadery = new BitReader(this.uint8Array);
         this.checkID3V2();
         this.checkID3V1();
-        return {id3V2: this.id3V2, id3V1: this.id3V1};
+        return {v2: this.id3V2, v1: this.id3V1};
     }
     checkID3V2() {
         /*必须为"ID3"否则认为标签不存在*/
@@ -135,7 +135,7 @@ class Id3Info {
                         let textEncoding = this.bitReadery.read(1).toNum();
                         frameData.textEncoding = textEncoding;
                         // MIME 类型 結尾標識為0
-                        let mineType = this.bitReadery.read(this.bitReadery.findTextEnd(textEncoding)).toStr(textEncoding);
+                        let mineType = this.bitReadery.read(this.bitReadery.findTextEnd(0)).toStr();
                         let picType = this.bitReadery.read(1).toNum();
                         // this.debug && console.log(textEncoding);
                         // 圖片描述 結尾標識為0
@@ -232,13 +232,15 @@ class Id3Info {
                         let textEncoding = this.bitReadery.read(1).toNum();
                         frameData.textEncoding = textEncoding;
                         // MIME 类型 結尾標識為0
-                        let mineType = this.bitReadery.read(this.bitReadery.findTextEnd(textEncoding)).toStr(textEncoding);
+                        let mineType = this.bitReadery.read(this.bitReadery.findTextEnd(0)).toStr(0);
                         let picType = this.bitReadery.read(1).toNum();
                         // this.debug && console.log(textEncoding);
-                        // 圖片描述 結尾標識為0
-                        let description = this.bitReadery.read(this.bitReadery.findTextEnd(textEncoding)).toStr(textEncoding);;
+                        // 圖片描述 結尾標識根據編碼
+                        let description = this.bitReadery.read(this.bitReadery.findTextEnd(textEncoding)).toStr(textEncoding);
+                        console.log(this.bitReadery.bitCache);
                         let picSize = frameEndIndex - this.bitReadery.index;
                         let picData = this.bitReadery.read(picSize);
+                        console.log(this.bitReadery.bitCache);
                         let url = window.URL.createObjectURL(new Blob([picData], { type: mineType }));
 
                         frameData.description = description;

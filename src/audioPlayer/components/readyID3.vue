@@ -48,7 +48,8 @@ export default {
     },
     mounted () {
         this.audioInfo.readyInfoFromUrl('/static/59.【1】Endless Melancholy - We Have Met Before.mp3').then(res=> {
-            let {id3V2} = res;
+            console.log('音樂信息', res);
+            let {id3: {v2: id3V2}} = res;
             this.id3V2 = id3V2;
         });
     },
@@ -59,8 +60,8 @@ export default {
             let file = e.dataTransfer.files[0];
             if (/audio\//.test(file.type)) {
                 let buffer = await file.arrayBuffer();
-                let {id3V2} = this.audioInfo.readyInfo(buffer);
-                this.id3V2 = id3V2;
+                let {id3} = this.audioInfo.readyInfo(buffer);
+                this.id3V2 = id3?.v2;
             }
         }
     }

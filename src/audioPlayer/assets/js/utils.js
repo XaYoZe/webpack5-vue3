@@ -126,7 +126,16 @@ class BitReader {
         let endIndex = option.end;
         let index = startIndex;
         while (this.buffer[index] !== undefined) {
-            let allTrue = seachArr.every((val, i) => val === '*' || val === this.buffer[index + i]);
+            // 篩選匹配結果
+            let allTrue = seachArr.every((val, i) => {
+                if (val === '*' || val === this.buffer[index + i]) return true;
+                if (/^</.test(val)) {
+                    return this.buffer[index + i] < Number(val.slice(1))
+                }
+                if (/^>/.test(val)) {
+                    return this.buffer[index + i] >  Number(val.slice(1))
+                }
+            });
             // 找到拋出索引
             if (allTrue) {
                 return index - startIndex;

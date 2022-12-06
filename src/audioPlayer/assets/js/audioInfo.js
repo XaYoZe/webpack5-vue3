@@ -21,13 +21,12 @@ export default class AudioInfo {
     }
     // 讀取buffer信息
     readyInfo (buffer) {
-        let info = null;
         this.uint8Array = new Uint8Array(buffer);
-        console.log(info)
-        info = this.Id3Info.readyInfo(this.uint8Array);
-        this.mp3Info.readyInfo(this.uint8Array, info.id3V2.frameSize);
-        console.log(this.uint8Array)
+        let info = null;
+        let id3 = this.Id3Info.readyInfo(this.uint8Array);
+        let mp3 = this.mp3Info.readyInfo(this.uint8Array, id3.v2.frameSize);
+        let flac = this.flacInfo.readyInfo(this.uint8Array, id3.v2.frameSize);
         // info = this.flacInfo.readyInfo(this.uint8Array);
-        return info;
+        return {id3, mp3};
     }
 }

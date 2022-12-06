@@ -13,21 +13,31 @@ export default class FlacInfo {
         window.arrToStr = this.arrToStr;
     }
     // 讀取buffer信息 16進制數組
-    readyInfo (buffer) {
+    readyInfo (buffer, startIndex = 0) {
         this.uint8Array = buffer;
         this.sliceIndex = 0;
-        return this.checkInfo(this.uint8Array);
+        return this.checkInfo(startIndex);
     }
-    checkInfo () {
+    checkInfo (startIndex) {
         let bitReadery = new BitReader(this.uint8Array);
+        bitReadery.skip(startIndex);
         let identifier = bitReadery.read(4).toStr();
         if (identifier === 'fLaC') {
             let info = {
                 version: identifier
             }
-            console.log('類型:', identifier);
+            let blockMinSize = bitReadery.read(2).toNum();
+            let blockMaxSize = bitReadery.read(2).toNum();
+            let frameMinSize = bitReadery.read(3).toNum();
+            let frameMaxSize = bitReadery.read(3).toNum();
+            console.log(`最小塊大小:${blockMinSize}
+            最大塊大小:${blockMaxSize}
+            最小幀大小:${frameMinSize}
+            最大幀大小:${frameMaxSize}
+            `);
             return info;
         }
+        return
         // console.log();
     }
 }
