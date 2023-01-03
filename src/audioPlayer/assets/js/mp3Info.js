@@ -35,19 +35,16 @@ class Mp3Info {
         let syncInfo = sliceText(11);
         bitReadery.skip(32);
         let infoFlag = bitReadery.findIndex([0x49, 0x6E, 0x66, 0x6F], { start: bitReadery.index, end: bitReadery.index + 32 });
-        this.debug && console.log('有info标识', infoFlag);
         let lameFlag = bitReadery.findIndex([0x4C, 0x41, 0x4D, 0x45], { start: bitReadery.index, end: bitReadery.index + 32 });
-        this.debug && console.log('有LAME标识', lameFlag);
         let xingFlag = bitReadery.findIndex([0x58, 0x69, 0x6E, 0x67], { start: bitReadery.index, end: bitReadery.index + 32 });
-        this.debug && console.log('有xing标识', xingFlag);
-        
+        this.debug && console.log(`info标识: ${infoFlag};\nLAME标识: ${lameFlag};\nxing标识: ${xingFlag}`);
 
         if (0 === bitReadery.read(24).toNum()) {
             this.debug && console.log('MP3幀頭');
         }
 
         if (syncInfo !== ''.padStart(11, 1) && infoFlag == - 1 && lameFlag == -1 && xingFlag == -1 ) {
-            this.debug && console.log('存在髒數據, 結果不一定準確')
+            this.debug && console.log('有髒數據, 結果不一定準確');
             let index = bitReadery.findIndex([0, 0xff, `>${0xe0}`, '*', '*', 0]); // 
             let nexIndex = bitReadery.index + index + 1;
             this.checkMp3Info(nexIndex);
@@ -57,6 +54,7 @@ class Mp3Info {
         let version = sliceText(2);
         // 層
         let layer = sliceText(2);
+        if (layer == '00') return;
         let vlMap = { '1111': 0, '1110': 1, '1101': 2, '0011': 3, '0010': 4, '0001': 5, '1011': 3, '1010': 4, '1001': 5 }
         // crc校驗
         let crcCheck = sliceText(1);
@@ -85,22 +83,7 @@ class Mp3Info {
         let frameSize = (bitSec / 8 * bitrate  * 1000 / samplingFrequency) + Number(padding);
         let totalFrame = (bitReadery.totalSize - startIndex - 128) / frameSize;
         this.debug && console.log(
-            ` 同步信息: ${syncInfo}\n`,
-            `版本: ${Mp3Map.version[version]}\n`,
-            `層: ${Mp3Map.layer[layer]}\n`,
-            `crc校驗: ${Mp3Map.crcCheck[crcCheck]}\n`,
-            `比特率: ${bitrate}kbps\n`,
-            `採樣率: ${samplingFrequency}\n`,
-            `帧长调节: ${Mp3Map.padding[padding]}\n`,
-            `保留字: ${private1}\n`,
-            `聲道: ${Mp3Map.mode[mode]}\n`,
-            `扩充模式: ${mode === '01' ? Mp3Map.extension[extension] : '無'}\n`,
-            `版权: ${Mp3Map.copyright[copyright]}\n`,
-            `原版标志: ${Mp3Map.original[original]}\n`,
-            `强调模式: ${Mp3Map.emphasis[emphasis]}\n`,
-            `每帧采样数: ${Mp3Map.bitSec[layer][version]}\n`,
-            `幀長度: ${frameSize}\n`,
-            `時長: ${totalFrame * bitSec / samplingFrequency}`
+            `同步信息: ${syncInfo}\n版本: ${Mp3Map.version[version]}\n層: ${Mp3Map.layer[layer]}\ncrc校驗: ${Mp3Map.crcCheck[crcCheck]}\n比特率: ${bitrate}kbps\n採樣率: ${samplingFrequency}\n帧长调节: ${Mp3Map.padding[padding]}\n保留字: ${private1}\n聲道: ${Mp3Map.mode[mode]}\n扩充模式: ${mode === '01' ? Mp3Map.extension[extension] : '無'}\n版权: ${Mp3Map.copyright[copyright]}\n原版标志: ${Mp3Map.original[original]}\n强调模式: ${Mp3Map.emphasis[emphasis]}\n每帧采样数: ${Mp3Map.bitSec[layer][version]}\n幀長度: ${frameSize}\n時長: ${totalFrame * bitSec / samplingFrequency}`
         );
         
         mp3Info = {

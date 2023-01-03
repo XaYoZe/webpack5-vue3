@@ -24,8 +24,8 @@ export default class AudioInfo {
         this.uint8Array = new Uint8Array(buffer);
         let info = null;
         let id3 = this.Id3Info.readyInfo(this.uint8Array);
-        let mp3 = this.mp3Info.readyInfo(this.uint8Array, id3.v2.frameSize);
         let flac = this.flacInfo.readyInfo(this.uint8Array, id3.v2.frameSize);
+        let mp3 = flac || this.mp3Info.readyInfo(this.uint8Array, id3.v2.frameSize);
         // info = this.flacInfo.readyInfo(this.uint8Array);
         return {id3, mp3};
     }

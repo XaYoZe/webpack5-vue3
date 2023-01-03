@@ -1,6 +1,6 @@
 // https://id3.org/id3v2.3.0
 import BitReader from './utils';
-import { Id3Map } from './map';
+import { flacMap } from './map';
 export default class FlacInfo {
     // uint8 數組
     uint8Array = null;
@@ -26,15 +26,85 @@ export default class FlacInfo {
             let info = {
                 version: identifier
             }
-            let blockMinSize = bitReadery.read(2).toNum();
-            let blockMaxSize = bitReadery.read(2).toNum();
-            let frameMinSize = bitReadery.read(3).toNum();
-            let frameMaxSize = bitReadery.read(3).toNum();
-            console.log(`最小塊大小:${blockMinSize}
-            最大塊大小:${blockMaxSize}
-            最小幀大小:${frameMinSize}
-            最大幀大小:${frameMaxSize}
-            `);
+            let isLast = false;
+            while (!isLast) {
+                let headerInfo = bitReadery.read(1).toNum();
+                let headerSize = bitReadery.read(3).toNum();
+                let metaData = null;
+                if (headerInfo >= 0b10000000) {
+                    isLast = true;
+                    headerInfo-= 0b10000000;
+                }
+                switch (headerInfo) {
+                    // 流信息
+                    case 0:
+                        let blockMinSize = bitReadery.read(2).toNum(); // 最小塊
+                        let blockMaxSize = bitReadery.read(2).toNum(); // 最大塊
+                        let frameMinSize = bitReadery.read(3).toNum(); // 最小幀
+                        let frameMaxSize = bitReadery.read(3).toNum(); // 最大幀
+                        let readBit = BitReader.Slice(bitReadery.read(8).toBit());
+                        let sampleRate = Number(`0b${readBit(20)}`); // 采样率
+                        let channels = Number(`0b${readBit(3)}`); // 通道數
+                        let sampleBits = Number(`0b${readBit(5)}`); // 每个样本的位数
+                        let md5 = BitReader.DecTranslate(bitReadery.read(16), 16, 2);
+                        console.log(`采样率: ${ sampleRate }\n通道數: ${channels}\n每个样本的位数:${sampleBits}\n最小塊:${blockMinSize}\n最大塊:${blockMaxSize}\n最小幀:${frameMinSize}\n最大幀:${frameMaxSize}\nmd5:${md5}`);
+                        break;
+                    // 圖片
+                    case 6:
+                        let picType = bitReadery.read(4).toNum(); // 圖片類型
+                        let mimeSize = bitReadery.read(4).toNum(); // mine類型長度
+                        let mineType = bitReadery.read(mimeSize).toStr(); // mine類型
+                        let desSize = bitReadery.read(4).toNum(); // 描述長度
+                        let des = bitReadery.read(desSize).toStr(1); // 描述
+                        let width = bitReadery.read(4).toNum(); // 圖片寬度
+                        let height = bitReadery.read(4).toNum(); // 圖片高度
+                        let depth  = bitReadery.read(4).toNum(); // 顏色深度
+                        let indexed  = bitReadery.read(4).toNum(); // 顏色縮影
+                        let picSize = bitReadery.read(4).toNum(); // 圖片大小
+                        let picData = bitReadery.read(picSize); // 圖片數據
+                        let url = window.URL.createObjectURL(new Blob([picData], { type: mineType }));
+                        let base64 = `data:${mineType};base64,${picData.toBase64()}`;
+                        console.log(`圖片\n圖片類型: ${flacMap.picType[picType]}\n圖片格式: ${mineType}\n圖片大小:${parseInt(picData.length / 1024)}kb\n圖片描述: ${des}\n圖片寬度: ${width}\n圖片高度: ${height}\n顏色深度: ${depth}\n顏色索引: ${indexed}\n本地鏈接:${url}\n%c `, `padding:100px 100px;background:url(${base64}) no-repeat center/cover;`);
+                        // console.log(``, , picData);
+                        break;
+                    case 4: // 注釋
+                      let endIndex = bitReadery.index + headerSize;
+                      let vendorLength = bitReadery.read(4).reverse().toNum(); // 供應商長度
+                      let vendorString = bitReadery.read(vendorLength).toStr(3); // 供應商
+                      let userCommentListLength = bitReadery.read(4).reverse().toNum(); // 注釋個數
+                      console.log( `供應商:${vendorString}\n`); 
+                      for (let i = 0; i < userCommentListLength;i ++) {
+                        let length = bitReadery.read(4).reverse().toNum(); // 注釋長度
+                        let comment  = bitReadery.read(length).toStr(3).split('='); // 注釋
+                        let key = comment[0]; // 注釋名
+                        let val = comment[1]; // 注釋內容
+                        console.log( `字段: ${flacMap.comment[key] || key }\n值: ${val}\n長度:${length}`);
+                      }
+                      console.log(`注釋結束索引: ${ endIndex }\n實際結束索引:${ bitReadery.index }`);
+                      break   
+                    case 5:
+                        metaData = bitReadery.read(headerSize);
+                        console.log('CUESHEET', metaData);
+                        break
+                    case 3:
+                        metaData = bitReadery.read(headerSize);
+                        console.log('SEEKTABLE', metaData);
+                        break
+                    case 2:
+                        metaData = bitReadery.read(headerSize);
+                        console.log('APPLICATION', metaData);
+                        break
+                    case 1:
+                        console.log('PADDING', headerInfo);
+                        bitReadery.skip(headerSize)
+                        break;
+                    default:
+                        metaData = bitReadery.read(headerSize);
+                        // console.log('其他', headerInfo, metaData);
+                    break;
+                }
+                // console.log(headerInfo, headerSize, metaData);
+            }
             return info;
         }
         return

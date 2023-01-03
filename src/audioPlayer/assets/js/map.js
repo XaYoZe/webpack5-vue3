@@ -460,7 +460,51 @@ const Mp3Map = {
     // 强调模式
     emphasis: {'00': '未定义', '01': '50/15ms', '10': '保留', '11': 'CCITT J.17'}
 }
+const flacMap = {
+    picType: [
+        '其他',
+       '32x32 像素“文件图标”（仅限 PNG）',
+       '其他文件图标',
+       '盖子（正面）',
+       '盖子（背面）',
+       '传单页',
+       '介质（例如 CD 的标签侧）',
+       '首席艺术家/首席表演者/独奏家',
+       '艺术家/表演者',
+       '导体',
+       '乐队/管弦乐队',
+       '作曲家',
+       '作词人/文字作者',
+       '录制位置',
+       '录制期间',
+       '演出期间',
+       '电影/视频屏幕捕获',
+       '一条颜色鲜艳的鱼',
+       '插图',
+       '乐队/艺术家标识',
+       '出版商/工作室标识'
+    ],
+    comment: {
+      'TITLE': '标题',
+      'VERSION': '版本',
+      'ALBUM': '唱片集',
+      'TRACKNUMBER': '專輯',
+      'ARTIST': '藝術家',
+      'PERFORMER': '表演者',
+      'COPYRIGHT': '许可证',
+      'LICENSE': '许可证',
+      'ORGANIZATION': '',
+      'DESCRIPTION': '描述',
+      'GENRE': '流派',
+      'DATE': '日期',
+      'LOCATION': '位置',
+      'CONTACT': '联系方式',
+      'ISRC': '轨道编号',
+      'LYRICS': '歌詞'
+    }
+}
 module.exports = {
     Id3Map,
-    Mp3Map
+    Mp3Map,
+    flacMap
 }

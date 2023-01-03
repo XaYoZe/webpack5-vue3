@@ -75,6 +75,7 @@ class BitReader {
         this.bitCache.__proto__.toStr = this.toStr;
         this.bitCache.__proto__.toNum = this.toNum;
         this.bitCache.__proto__.toBit = this.toBit;
+        this.bitCache.__proto__.toBase64 = this.toBase64;
         
         this.totalSize = buffer.length;
         if (buffer.constructor === Uint8Array) {
@@ -90,6 +91,13 @@ class BitReader {
         this.bitCache = this.buffer.slice(this.index, this.index + count);
         this.index += count + skip;
         return this.bitCache;
+    }
+    toBase64 () {
+      let str = '';
+      this.forEach(item => {
+        str += String.fromCodePoint(item);
+      })
+      return  window.btoa(str);
     }
     toStr (encoding = 0) {
         return BitReader.HexToStr(this, encoding);

@@ -242,6 +242,7 @@ class Id3Info {
                         let picData = this.bitReadery.read(picSize);
                         console.log(this.bitReadery.bitCache);
                         let url = window.URL.createObjectURL(new Blob([picData], { type: mineType }));
+                        let base64 = `data:${mineType};base64,${picData.toBase64()}`;
 
                         frameData.description = description;
                         frameData.mineType = mineType;
@@ -250,6 +251,7 @@ class Id3Info {
                         frameData.size = picSize;
                         frameData.url = url;
                         this.debug && console.log(`%c圖片類型: ${id3Map.picType[picType]} \n圖片格式:${mineType} \n圖片描述: ${description} \n圖片鏈接:${url}`, style);
+                        this.debug && console.log(`%c `, `padding:100px 100px;background:url(${base64}) no-repeat center/cover;`)
                         // 轉base64
                         // let base64Pic = ``;
                         // picData.forEach(item => {
@@ -337,14 +339,10 @@ class Id3Info {
                         frameData.picData = picData;
                         frameData.size = picSize;
                         let url = window.URL.createObjectURL(new Blob([picData], { type: mineType }));
+                        let base64 = `data:${mineType};base64,${picData.toBase64()}`;
                         frameData.url = url;
                         this.debug && console.log(`%c圖片類型: ${id3Map.picType[picType]} \n圖片格式:${mineType} \n圖片描述: ${description}\n 圖片鏈接:${url}`);
-                        // 轉base64
-                        // let base64Pic = ``;
-                        // picData.forEach(item => {
-                        //     base64Pic += String.fromCharCode(item);
-                        // });
-                        // let pic = `data:${mineType};base64,${window.btoa(base64Pic)}`;
+                        this.debug && console.log(`%c `, `padding:100px 100px;background:url(${base64}) no-repeat center/cover;`)
                     } else if (frameId === 'COM' || frameId === 'SLT') { // 注释 歌词
                         // 文本編碼
                         let textEncoding = this.bitReadery.read(1).toNum();
@@ -372,10 +370,10 @@ class Id3Info {
                 }
                 this.id3V2.frames.push(frameData);
             }
+            this.debug && console.log('ID3V2結束索引', this.id3V2.frameSize);
         } else {
-            this.debug && console.log(`類型:${identifier}`);
+            // this.debug && console.log(`類型:${identifier}`);
         }
-        this.debug && console.log('ID3V2結束索引', this.id3V2.frameSize);
         return this.id3V2;
     }
     // 查找id3v1信息
