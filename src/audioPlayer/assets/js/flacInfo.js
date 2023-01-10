@@ -27,6 +27,7 @@ export default class FlacInfo {
                 version: identifier
             }
             let isLast = false;
+            let length = 0;
             while (!isLast) {
                 let headerInfo = bitReadery.read(1).toNum();
                 let headerSize = bitReadery.read(3).toNum();
@@ -38,16 +39,19 @@ export default class FlacInfo {
                 switch (headerInfo) {
                     // 流信息
                     case 0:
-                        let blockMinSize = bitReadery.read(2).toNum(); // 最小塊
+                        let blockMinSize = bitReadery.read(2).toNum(); // 最小塊 0-15 无效。
                         let blockMaxSize = bitReadery.read(2).toNum(); // 最大塊
                         let frameMinSize = bitReadery.read(3).toNum(); // 最小幀
                         let frameMaxSize = bitReadery.read(3).toNum(); // 最大幀
                         let readBit = BitReader.Slice(bitReadery.read(8).toBit());
                         let sampleRate = Number(`0b${readBit(20)}`); // 采样率
-                        let channels = Number(`0b${readBit(3)}`); // 通道數
-                        let sampleBits = Number(`0b${readBit(5)}`); // 每个样本的位数
+                        let channels = Number(`0b${readBit(3)}`) + 1; // 通道數 - 1
+                        let sampleBits = Number(`0b${readBit(5)}`)  + 1;// 採樣大小 - 1
+                        let totalSamples = Number(`0b${readBit(36)}`);// 總採樣數
+                        length = Math.floor(totalSamples / sampleRate);
+                        let sampleBit = length * sampleRate;
                         let md5 = BitReader.DecTranslate(bitReadery.read(16), 16, 2);
-                        console.log(`采样率: ${ sampleRate }\n通道數: ${channels}\n每个样本的位数:${sampleBits}\n最小塊:${blockMinSize}\n最大塊:${blockMaxSize}\n最小幀:${frameMinSize}\n最大幀:${frameMaxSize}\nmd5:${md5}`);
+                        console.log(`最小塊:${blockMinSize}\n最大塊:${blockMaxSize}\n最小幀:${frameMinSize}\n最大幀:${frameMaxSize}\n采样率: ${ sampleRate / 1000}kHz\n通道數: ${channels}\n採樣大小:${sampleBits}位\n總樣本:${totalSamples}\n時長: ${length}s\n比特率${sampleBit}\nmd5:${md5}`);
                         break;
                     // 圖片
                     case 6:
@@ -87,8 +91,14 @@ export default class FlacInfo {
                         console.log('CUESHEET', metaData);
                         break
                     case 3:
-                        metaData = bitReadery.read(headerSize);
-                        console.log('SEEKTABLE', metaData);
+                        for (let i = 0; i < headerSize / 18; i++) {
+                          let sample  = bitReadery.read(8).toNum();
+                          let offset  = bitReadery.read(8).toNum();
+                          let sampleNum = bitReadery.read(2).toNum();
+                          console.log(sample, offset, sampleNum);
+                          // console.log('SEEKTABLE', headerSize / 18, metaData);
+                        }
+                        console.log('尋道點數量', headerSize / 18, bitReadery.index);
                         break
                     case 2:
                         metaData = bitReadery.read(headerSize);
@@ -104,6 +114,12 @@ export default class FlacInfo {
                     break;
                 }
                 // console.log(headerInfo, headerSize, metaData);
+            }
+            if (isLast) {
+
+              let totalFrameSize = bitReadery.buffer.length -  bitReadery.index;
+              let bits = Math.round(totalFrameSize * 8 / (length * 1000));
+              console.log(`頭部大小: ${bitReadery.index / 1024}K\n內容大小:${ totalFrameSize / 1024**2 }M\n比特率:${bits}kbps`);
             }
             return info;
         }
