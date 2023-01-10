@@ -12,25 +12,28 @@
       directory
     />
     <button @click="clickDownLoad">下載</button>
-    <canvas ref="canvas"></canvas>
-    <screenshot ref="screenshot">
-        <div class="main" ref="main">
-            <div class="top">你不是真正的快樂</div>
-            <div class="left">
-              <input type="text" value="123">
+    <div class="shot-block" ref="shotBlock">
+      <canvas ref="canvas"></canvas>
+      <div class="main" ref="main">
+          <div class="top">你不是真正的快樂</div>
+          <div class="left">
+            <div>
+              <input class="text" type="text" value="123">
             </div>
-            <div class="right"><img ref="img" title="DSASDA" src="@img/07.jpeg">
-            <ul>
-               <li>1</li>
-            </ul>
+          </div>
+          <div class="right"><img ref="img" title="DSASDA" src="@img/07.jpeg">
+            <div class="first-row">
+              <div></div>
             </div>
-        </div>
-      <!-- <div id="dirImgBox" ref="dirImgBox">
-        <div id="dirFileBox" onclick="dirFile.click()">
-          <i>+</i>
-        </div>
-      </div> -->
-    </screenshot>
+            <div class="next-row"></div>
+          </div>
+      </div>
+    </div>
+    <!-- <div id="dirImgBox" ref="dirImgBox">
+      <div id="dirFileBox" onclick="dirFile.click()">
+        <i>+</i>
+      </div>
+    </div> -->
   </div>
 </template>
 <script>
@@ -47,7 +50,7 @@ export default {
   mounted () {
     console.log();
     this.initCanvas();
-    this.nodeCapture = new NodeCapture({el: document.body});
+    this.nodeCapture = new NodeCapture({el: this.$refs.shotBlock});
     window.nodeCapture = this.nodeCapture;
   },
   methods: {
@@ -136,58 +139,79 @@ export default {
 <style scoped lang="scss">
 .view {
   width: 100%;
-  
-  .main {
-    width: 250px;
-    // height: 500px;
-    position: relative;
-    background: radial-gradient(#fff, #f1c000 , #bad);
-    display: grid;
-    grid-template-areas: "top top top" "left right right"  "left right right" ;
-    grid-template-columns: 50px 100px 100px;
-    grid-template-rows: 50px 100px 100px;
-    ul {
-        padding-left: 50px;
-        li {
-            padding-block: 10px 20px;
+  .shot-block {
+    .main {
+      width: 250px;
+      // height: 500px;
+      position: relative;
+      background: radial-gradient(#fff, #f1c000 , #bad);
+      display: grid;
+      grid-template-areas: "top top top" "left right right"  "left right right" ;
+      grid-template-columns: 50px 100px 100px;
+      grid-template-rows: 50px 100px 100px;
+      ul {
+          padding-left: 50px;
+          li {
+              padding-block: 10px 20px;
+          }
+      }
+      .top {
+        grid-area: top;
+        // line-height: 50px;
+        font-size: 16px;
+        color: aqua;
+        background: #cad;
+        line-height: 50px;
+        &::before {
+           content: '';
+          vertical-align: middle;
+          display: inline-block;
+          width: 50px;
+          height: 50px;
+          background: #cba;
+          border-radius: 50%;
         }
-    }
-    .top {
-      grid-area: top;
-      // line-height: 50px;
-      font-size: 16px;
-      color: aqua;
-      background: #cad;
-      line-height: 50px;
-      &::before {
-         content: '';
-        vertical-align: middle;
-        display: inline-block;
-        width: 50px;
-        height: 50px;
+      }
+      .left {
+        grid-area: left;
         background: #cba;
-        border-radius: 50%;
+        input {
+          width: 100%;
+          font-size: 24px;
+          color: #bad;
+          border: 1px solid;
+        }
+        > div {
+          height: auto;
+        }
+        .text {
+          margin-bottom: 30px;
+        }
       }
-    }
-    .left {
-      grid-area: left;
-      background: #cba;
-      input {
-        width: 100%;
-        font-size: 24px;
-        color: #bad;
-        border: 1px solid;
-      }
-    }
-    .right {
-      grid-area: right;
-      background: url("~@img/29.jpg") no-repeat right 0 / 100px,
-        url(~@img/08.jpg) no-repeat right 50px / 100px;
-      justify-content: center;
-      align-items: center;
-      img {
-        // height: 100%;
-        width: 100px;
+      .right {
+        grid-area: right;
+        background: url("~@img/29.jpg") no-repeat right 0 / 100px,
+          url(~@img/08.jpg) no-repeat right 50px / 100px;
+        justify-content: center;
+        align-items: center;
+        img {
+          // height: 100%;
+          width: 100px;
+          display: block;
+        }
+        .first-row {
+          width: 20px;
+          > div {
+            background: #cad;
+            height: 20px;
+            margin-bottom: 20px;
+          }
+        }
+        .next-row {
+          width: 20px;
+          height: 20px;
+          background: #4991bb;
+        }
       }
     }
   }
