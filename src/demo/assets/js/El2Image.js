@@ -1,45 +1,29 @@
 // 使用
-// this.el2Image = new El2Image({el: this.$refs.source });
-// await this.el2Image.draw();  
+// this.el2Image = new El2Image();
+// await this.el2Image.draw({el: this.$refs.source });  
 export default class El2Image {
   // 文案片段
   frag = document.createDocumentFragment();
   // 請求緩存
   cache = {};
+  svgEl = null;
+  canvasEl = null;
   // 加important的屬性, 部分屬性錯亂是可以加上試試
-  importantList = [];
-  defaultStyle = {};
-  defaultStyleMap = {};
-  /**
-   * 
-   * @param {*} options el: dom節點;width: 圖片寬度, height:圖片高度, quality:成像質量
-   */
-  constructor(options = {}) {
-    this.el = options.el; // dom節點
-    this.options = options;
-    this.quality = options.quality || 1; // 成像質量
-    this.imgWidth = options.width || this.el.offsetWidth; // 圖片寬度
-    this.scale = 1; // 圖片縮放比例
-    // 只傳寬度, 根據比例放大縮小
-    if (!options.height && options.width) {
-      this.scale = options.width / this.el.offsetWidth;
-      this.imgHeight = this.scale * this.el.offsetHeight;
-    } else {
-      this.imgHeight = options.height || this.el.offsetHeight; // 圖片高度
-    }
-    this.svgEl = null;
-    this.canvasEl = null;
-    this.defaultPseudoElStyle = {}; // 默認偽元素樣式
-    this.defaultStyleMap = {}; // 默認元素樣式 
-    this.loadImageList = []; // 圖片加載列表
-    // this.importantList = ['background-size']; // 添加impportant的樣式
-    this.supportComputedStyleMap = Boolean(document.body.computedStyleMap); // 是否支持computedStyleMap方法
+  importantList = [
+    // 'background-size' // 解決ios多張背景不同尺寸顯示問題
+  ];
+  skipStyleList = [ // 跳過樣式
+    '-webkit-background-size' // ios 該樣式會導致多張背景圖片出現尺寸錯亂
+  ];
+  loadImageList = []; // 圖片加載列表
+  defaultStyleMap = {}; //  默認元素樣式
+  supportComputedStyleMap = Boolean(document.body.computedStyleMap); // 是否支持computedStyleMap方法
+  constructor() {
     this.initDefaultStyle();
   }
   // 初始化默認樣式
   initDefaultStyle() {
     let iframe = document.createElement("iframe");
-    let srcdoc = "";
     let tagList = ["h1", "h2", "div", "span", "p", "ul", "li", "input", "img", "a", "button", "canvas"];
     let pseudoElList = ['::before', '::after'];
     iframe.style.display = "none";
@@ -52,10 +36,10 @@ export default class El2Image {
           this.defaultStyleMap[dom.tagName] = dom.computedStyleMap();
           return;
         }
-        this.defaultStyleMap[dom.tagName] = window.getComputedStyle(contentDocument.body, item);
+        this.defaultStyleMap[dom.tagName] = window.getComputedStyle(dom);
       });
       pseudoElList.forEach((item) => {
-        this.defaultPseudoElStyle[item] = window.getComputedStyle(contentDocument.body, item);
+        this.defaultStyleMap[item] = window.getComputedStyle(contentDocument.body, item);
       })
     };
     document.body.append(iframe);
@@ -69,7 +53,7 @@ export default class El2Image {
     return window.btoa(base64);
   }
   // 获取图片转成base64
-  getPic(src) {
+  getPicBase64(src) {
     if (this.cache[src]) {
       return Promise.resolve(this.cache[src]);
     }
@@ -90,15 +74,23 @@ export default class El2Image {
         return Promise.reject(err);
       });
   }
-  // 檢測偽元素
-  async hasPseudoElement(node, tag) {
-    let beforeStyle = window.getComputedStyle(node, "before");
-    let afterStyle = window.getComputedStyle(node, "after");
-    if (beforeStyle.content == "none" && beforeStyle.content == "none")
+  /**
+   * 偽元素樣式
+   * @param {*} el 要檢測偽元素的元素
+   * @param {*} tag 添加偽元素樣式的元素
+   * @returns 偽元素樣式文本
+   */
+  async hasPseudoElement(el, tag) {
+    // before偽元素
+    let beforeStyle = window.getComputedStyle(el, "before");
+    // after偽元素
+    let afterStyle = window.getComputedStyle(el, "after");
+    if (beforeStyle.content == "none" && beforeStyle.content == "none") {
       return "";
-      let beforeStyleText = "";
-      let afterStyleText = "";
-      let selector = this.createSelector(tag);
+    }
+    let beforeStyleText = "";
+    let afterStyleText = "";
+    let selector = this.createSelector(tag);
       // ::before 偽元素
     if (beforeStyle.content !== "none") {
       beforeStyleText = `${selector}::before { ${await this.createStyle(beforeStyle, '::before')} }`;
@@ -109,83 +101,88 @@ export default class El2Image {
     }
     return `${beforeStyleText}${afterStyleText}`;
   }
-  // 遞歸复制节点
-  // node: 複製的目標
-  // conf: 添加的目標
-  // layer: 層級
-  async compile(node, conf, layer = "1") {
+  /**
+   * 遞歸复制节点
+   * @param {document} targetEl 克隆的目標
+   * @param {document} container 容器元素
+   * @param {string} layer 樣式
+   */
+  async compile(targetEl, container, layer = "1") {
     // 元素節點
-    if (node.nodeType == 1) {
-      let tag = node.cloneNode();
-      switch (node.tagName) {
+    if (targetEl.nodeType == 1) {
+      let cloneEl = targetEl.cloneNode();
+      // 額外處理一些元素節點
+      switch (targetEl.tagName) {
         case "IMG": // 處理圖片標籤
           try {
-            tag.src = await this.getPic(node.src);
-            this.loadImageList.push(tag.src);
+            cloneEl.src = await this.getPicBase64(targetEl.src);
+            this.loadImageList.push(cloneEl.src);
           } catch (err) {
-            tag.removeAttribute("src");
+            cloneEl.removeAttribute("src");
           }
           break;
         case "CANVAS": // 處理canvas標籤
-          tag = document.createElement("img");
-          Array.from(node.attributes, (item) => {
-            tag.setAttribute(item.name, item.value);
+          cloneEl = document.createElement("img");
+          Array.from(targetEl.attributes, (item) => {
+            cloneEl.setAttribute(item.name, item.value);
           });
           try {
-            tag.src = node.toDataURL("image/png");
-            this.loadImageList.push(tag.src);
+            cloneEl.src = targetEl.toDataURL("image/png");
+            this.loadImageList.push(cloneEl.src);
           } catch (err) {
-            tag.removeAttribute("src");
+            cloneEl.removeAttribute("src");
             console.log("圖片轉換錯誤", err);
           }
           break;
         case "video":
-          let canvas = this.createCanvas(node);
-          tag = document.createElement("img");
-          Array.from(node.attributes, (item) => {
-            tag.setAttribute(item.name, item.value);
-            tag.innerHTML = node.value;
+          cloneEl = document.createElement("img");
+          Array.from(targetEl.attributes, (item) => {
+            cloneEl.setAttribute(item.name, item.value);
+            cloneEl.innerHTML = targetEl.value;
           });
           try {
-            tag.src = canvas.toDataURL("image/png");
-            this.loadImageList.push(tag.src);
+            cloneEl.src = this.createCanvas(node);
+            this.loadImageList.push(cloneEl.src);
           } catch (err) {
-            tag.removeAttribute("src");
+            cloneEl.removeAttribute("src");
             console.log("視頻轉換錯誤", err);
           }
           break;
         case "INPUT": // 處理input text 標籤
-          if (node.getAttribute("type") === "text") {
-            tag = document.createElement("div");
-            Array.from(node.attributes, (item) => {
-              tag.setAttribute(item.name, item.value);
-              tag.innerHTML = node.value;
+          if (targetEl.getAttribute("type") === "text") {
+            cloneEl = document.createElement("div");
+            Array.from(targetEl.attributes, (item) => {
+              cloneEl.setAttribute(item.name, item.value);
+              cloneEl.innerHTML = targetEl.value;
             });
           }
           break;
         default:
           break;
       }
-      tag.classList.add(`layer-${layer}`);
-      // tag.className = `layer-${layer}`;
-      let style = this.supportComputedStyleMap ? node.computedStyleMap() : window.getComputedStyle(node);
+      cloneEl.classList.add(`layer-${layer}`);
+      let style = this.supportComputedStyleMap ? targetEl.computedStyleMap() : window.getComputedStyle(targetEl);
       let styleTag = document.createElement("style");
-      let styleText = await this.hasPseudoElement(node, tag);
-      styleTag.innerHTML = styleText + `${await this.createElStyle(style, tag)}`;
-      conf.appendChild(tag);
-      conf.append(styleTag);
-      if (node.childNodes.length > 0) {
-        for (let i = 0; i < node.childNodes.length; i++) {
-          await this.compile(node.childNodes[i], tag, `${layer}-${i + 1}`);
+      let styleText = await this.hasPseudoElement(targetEl, cloneEl);
+      styleTag.innerHTML = styleText + `${await this.createElStyle(style, cloneEl)}`;
+      container.appendChild(cloneEl);
+      container.append(styleTag);
+      if (targetEl.childNodes.length > 0) {
+        for (let i = 0; i < targetEl.childNodes.length; i++) {
+          await this.compile(targetEl.childNodes[i], cloneEl, `${layer}-${i + 1}`);
         }
       }
     }
     // 文本節點
-    if (node.nodeType == 3) {
-      conf.append(document.createTextNode(node.nodeValue));
+    if (targetEl.nodeType == 3) {
+      container.append(document.createTextNode(targetEl.nodeValue));
     }
   }
-  // 創建選擇器
+  /**
+   * 用元素樣式名創建選擇器
+   * @param {*} el 創建選擇器的元素
+   * @returns 樣式選擇器
+   */
   createSelector(el) {
     let className = "";
     let tagName = `${el.tagName.toLocaleLowerCase()}`;
@@ -194,19 +191,24 @@ export default class El2Image {
     });
     return tagName + className;
   }
-  // 創建樣式
+  /**
+   * 通過window.getComputedStyle創建樣式
+   * @param {*} computedStyle 元素的樣式表, 通過windw.getConputedStyle獲得
+   * @param {*} target 要賦予樣式的目標選擇器或者元素
+   * @returns 樣式字符串
+   */
   async createStyle(computedStyle, target) {
     let styleStr = "";
     let count = 0;
     let styleName = "";
     let styleText = "";
+    // 判斷是不是偽元素
     let isElement = typeof target === 'object';
-    let list = this[isElement ? 'defaultStyleMap' :'defaultPseudoElStyle'];
     let tagName =  isElement ? target.tagName : target;
     while ((styleName = computedStyle.item(count))) {
       count++;
       styleText = computedStyle.getPropertyValue(styleName);
-      if (target && styleText === list[tagName]?.getPropertyValue(styleName)) continue;
+      if (target && styleText === this.defaultStyleMap[tagName]?.getPropertyValue(styleName) || this.skipStyleList.includes(styleName)) continue;
       if (/url\(.*\)/.test(styleText) && !/url\(data:.*\)/.test(styleText)) {
         styleText = await this.replaceBgImg(styleText);
       }
@@ -217,7 +219,12 @@ export default class El2Image {
     }
     return isElement ? `${this.createSelector(target)}{${styleStr}}`: styleStr;
   }
-  // 生成元素科樣式
+  /**
+   * 通過el.computedStyleMap創建樣式
+   * @param {*} styleMap 通過el.computedStyleMap的樣式
+   * @param {*} el 賦予樣式的元素
+   * @returns 樣式字符串
+   */
   async createElStyle (styleMap, el) {
     if (this.supportComputedStyleMap) {
       return new Promise(resolve => {
@@ -243,11 +250,14 @@ export default class El2Image {
         }
       })
     }
-    console.log('不支持computedStyleMap');
     return this.createStyle(styleMap, el)
   }
-  // 替換背景圖片
   // styleText: 樣式值
+  /**
+   * 將背景圖片url替換base64
+   * @param {*} styleText 帶url的樣式
+   * @returns 替換後的樣式
+   */
   async replaceBgImg (styleText) {
     let urlReg = /url\(["'](.*?)['"]\)/g;
     let newStyle = styleText;
@@ -255,7 +265,7 @@ export default class El2Image {
     while ((urlExec = urlReg.exec(styleText))) {
       try {
         let url = urlExec[1];
-        let src = await this.getPic(url);
+        let src = await this.getPicBase64(url);
         this.loadImageList.push(src);
         // await this.createImage(res)
         newStyle = newStyle.replace(url, src);
@@ -263,6 +273,10 @@ export default class El2Image {
     }
     return newStyle
   }
+  /**
+   * 生成svga鏈接
+   * @returns svga鏈接
+   */
   createSvg() {
     // 生成svg
     let svgXml = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -279,6 +293,11 @@ export default class El2Image {
     var serializer = new XMLSerializer();
     return "data:image/svg+xml;charset=utf-8," +  encodeURIComponent('<?xml version="1.0" standalone="no"?>\r\n' + serializer.serializeToString(svgXml));
   }
+  /**
+   * 創建圖片,並等待加載完成
+   * @param {url} src 圖片鏈接
+   * @returns 圖片元素
+   */
   createImage(src) {
     return new Promise((res, rej) => {
       var image = new Image();
@@ -289,15 +308,23 @@ export default class El2Image {
       image.onerror = rej;
     });
   }
-  // 生成cavas
-  async createCanvas(image, width, height, quality = 1) {
-    var canvas = document.createElement("canvas"); //准备空画布
-    canvas.width = (width || image.offsetWidth) * window.devicePixelRatio;
-    canvas.height =(height || image.offsetWidth) * window.devicePixelRatio;
-    canvas.style.width = `${width || image.offsetWidth}px`;
-    canvas.style.height = `${height || image.offsetWidth}px`;
+  // 
+  /**
+   * 生成cavas
+   * @param {*} image 圖片
+   * @param {*} quality 圖片質量
+   * @param {*} cvs 使用已有的canvas對象
+   * @returns base64格式圖片
+   */
+  async createCanvas(image, quality = 1, cvs) {
+    var canvas = cvs || document.createElement("canvas"); //准备空画布
+    canvas.width = (image.width  || image.offsetWidth) * window.devicePixelRatio;
+    canvas.height =(image.height  || image.offsetHeight) * window.devicePixelRatio;
+    canvas.style.width = `${image.width  || image.offsetWidth}px`;
+    canvas.style.height = `${image.height  || image.offsetHeight}px`;
     var context = canvas.getContext("2d"); //取得画布的2d绘图上下文
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    console.log(image.width, image.height, canvas.width,canvas.height, devicePixelRatio);
     // document.body.append(canvas);
     this.canvasEl = canvas;
     return canvas.toDataURL("image/png", quality);
@@ -326,21 +353,54 @@ export default class El2Image {
           }
         }
         img.onerror = () => {
+          console.log('加載圖片失敗');
           count++;
         }
       }
     })
   }
-  // 渲染圖片
-  async draw () {
+  /**
+   * 渲染圖片
+   * @param {Object} options {el: 要截圖的元素, quality: 輸出圖片質量, width: 輸出圖片寬度, height: 輸出圖片高度}
+   * @returns base64格式png圖片
+   */
+  async draw (options) {
+    this.options = options;
+    this.el = options.el; // dom節點
+    this.quality = options.quality || 1; // 成像質量
+    this.imgWidth = options.width || this.el.offsetWidth; // 圖片寬度
+    this.scale = 1; // 圖片縮放比例
+    // 只傳寬度, 根據比例放大縮小
+    if (!options.height && options.width) {
+      this.scale = options.width / this.el.offsetWidth;
+      this.imgHeight = this.scale * this.el.offsetHeight;
+    } else {
+      this.imgHeight = options.height || this.el.offsetHeight; // 圖片高度
+    }
     await this.compile(this.el, this.frag);
-    // console.log('背景圖片列表', this.loadImageList);
     let svgSrc = await this.createSvg();
     let img = await this.createImage(svgSrc);
     this.loadImageList.push(svgSrc)
+    // this.svgEl = svgSrc
     await this.awaitImgLoad();
-    let canvasData = await this.createCanvas(img, this.imgWidth, this.imgHeight, this.quality);
-    // this.download(canvasData);
+    let canvasData = await this.createCanvas(img, this.quality);
+    if (!this.supportComputedStyleMap) {
+      // 延遲後重繪一遍, 解決ios圖片渲染不出來的問題
+      await this.sleep(50);
+      canvasData = this.createCanvas(img, this.quality, this.canvasEl);
+    }
     return canvasData;
+  }
+  /**
+   * 休眠
+   * @param {number} time 時長
+   * @returns Promise
+   */
+  sleep (time) {
+    return new Promise(res => {
+      setTimeout(() => {
+        res()
+      }, time);
+    })
   }
 }

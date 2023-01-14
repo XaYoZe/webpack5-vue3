@@ -1,13 +1,13 @@
 <template>
   <div class="view">
-    <button @click="clickDownLoad">轉換</button>
+    <button @click="clickDownLoad">繪製</button>
     <div class="view-content">
       <div class="source">
         <div class="title">
           節點
         </div>
         <div class="content" ref="source">
-        <canvas ref="canvas"></canvas>
+          <canvas ref="canvas"></canvas>
           <div class="main" ref="main">
               <div class="top">文本文本</div>
               <div class="left">
@@ -15,7 +15,9 @@
                   <input class="text" type="text" value="123">
                 </div>
               </div>
-              <div class="right"><img ref="img" title="DSASDA" src="@img/07.jpeg">
+              <div class="right">
+                <img ref="img" title="DSASDA" src="@img/07.jpeg">
+               
                 <div class="first-row">
                   <div></div>
                 </div>
@@ -34,11 +36,17 @@
           canvas
         </div>
       </div>
+      <div class="img" ref="img">
+        <div class="title">
+          img
+        </div>
+      </div>
     </div>
     <div class="style-test">
       <div class="block-out" id="blockOut">
-        <div class="block-in" id="blockIn" style="width: 50px;height: 50px;background: #4991bb;"></div>
+        <div class="block-in" id="blockIn" style="width: 50px;height: 50px;margin-bottom: 50px;background: #4991bb;"></div>
       </div>
+      <div class="block1"></div>
     </div>
   </div>
 </template>
@@ -49,13 +57,13 @@ export default {
   data() {
     return {
       imgList: [],
-      Node2Image: null,
+      el2Image: null,
     };
   },
   mounted () {
     this.initCanvas();
-    this.node2Image = new El2Image({el: this.$refs.source });
-    window.node2Image = this.node2Image;
+    this.el2Image = new El2Image();
+    window.el2Image = this.el2Image;
   },
   methods: {
     initCanvas () {
@@ -74,9 +82,17 @@ export default {
         //   img.src = res;
         //   this.$refs.svg.append(img);
         // })
-        await this.node2Image.draw();        
-        // this.$refs.svg.append(this.node2Image.svgEl);
-        this.$refs.canvas1.append(this.node2Image.canvasEl);
+        let imgSrc = await this.el2Image.draw({el: this.$refs.source });    
+        let img = new Image();
+        img.src = imgSrc;
+        this.$refs.img.append(img);
+        this.$refs.svg.append(this.el2Image.svgEl);
+        this.$refs.canvas1.append(this.el2Image.canvasEl);
+          // let a = document.createElement('a');
+          // a.href = this.el2Image.svgEl; //window.URL.createObjectURL(new Blob([this.el2Image.svgE]));
+          // a.download = 'img.svg';
+          // a.click();
+        // this.$refs.svg.append();
     },
   },
 };
@@ -84,16 +100,29 @@ export default {
 <style scoped lang="scss">
 .view {
   width: 100%;
+  margin: 50px 20px;
+  button {
+    width: 100px;
+    height: 50px;
+    border-radius: 25px;
+    margin: 0 auto;
+  }
   .view-content {
     display: flex;
     margin: 50px 0 100px;
     > div {
+      width: 250px;
       .title {
         text-align: center;
         font-size: 20px;
         margin-bottom: 10px;
       }
       margin-left: 20px;
+      .content {
+        > img {
+          width: 250px;
+        }
+      }
     }
   }
   .source {
@@ -179,6 +208,7 @@ export default {
         }
       }
     }
+
   }
   .style-test {
     padding-left: 100px;
@@ -187,6 +217,11 @@ export default {
       width: max-content;
       .block-in {
       }
+    }
+    .block1 {
+      background: #bad;
+      width: 50px;
+      height: 50px;
     }
   }
 }

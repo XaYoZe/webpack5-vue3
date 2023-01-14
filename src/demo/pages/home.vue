@@ -7,9 +7,9 @@
         </div>
         <div class="scroll-ctrl"><input type="text" v-model.number="addNum"><button @click="changeNum">添加</button></div>
     </div> -->
-    <div class="tabs">
+    <!-- <div class="tabs">
         <div class="tab" v-for="(tab) in tabs" :key="tab.name" @click="tabName = tab.name">{{ tab.title }}</div>
-    </div>
+    </div> -->
     <component :is="tabName"></component>
   </div>
 </template>
