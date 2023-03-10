@@ -32,7 +32,7 @@ module.exports = env => {
     },
     performance: {
       hints: 'warning', 
-      maxAssetSize: 3 * 1024 * 1024, // 整数类型（以字节为单位）控制webpack单个资产超出限制时发出性能提示
+      maxAssetSize: 5 * 1024 * 1024, // 整数类型（以字节为单位）控制webpack单个资产超出限制时发出性能提示
       maxEntrypointSize: 5000000 // 整数类型（以字节为单位） 控制webpack最大入口点文件大小超出限制时发出性能提示
     },
     module: {
@@ -50,12 +50,17 @@ module.exports = env => {
             filename: 'img/[name].[hash:7][ext]', // 输出资源路径
           }
         }, {
-          test: /\.(woff|woff2|eot|ttf|otf)$/, // 字体处理
-          type: 'asset/source' //  导出资源的源代码。
-          // use: ['file-loader']
+          test: /\.(woff|woff2|eot|ttf|otf)$/i, // 字体处理
+          type: 'asset', //  导出资源的源代码。
+          generator: {
+            filename: 'font/[name][ext]', // 输出资源路径
+          }
         },  {
           test: /\.(mp4|mp3)$/, // 影像資源
-          type: 'asset' //  导出资源的源代码。
+          type: 'asset', //  导出资源的源代码。
+          generator: {
+            filename: 'media/[name][ext]', // 输出资源路径
+          }
           // use: ['file-loader']
         }, {
           test: /\.s?[ac]?ss$/i, // 解析css, scss, sass

@@ -11,13 +11,13 @@
           <div class="main" ref="main">
               <div class="top">文本文本</div>
               <div class="left">
-                <div>
+                <div style="background: #cda;">
                   <input class="text" type="text" value="123">
                 </div>
               </div>
               <div class="right">
+                <div style="position: absolute; bottom: 0; left: 20px;width:80px;height: 50px;background: #cda;background-size: 100%;" :style="{'background-image': `url('${require('@img/09(11).png')}')`}"></div>
                 <img ref="img" title="DSASDA" src="@img/07.jpeg">
-               
                 <div class="first-row">
                   <div></div>
                 </div>
@@ -51,7 +51,7 @@
   </div>
 </template>
 <script>
-import El2Image from '@js/El2Image';
+import El2Image from '@js/el2Img';
 import domToImage from '@js/dom-to-image';
 export default {
   data() {
@@ -147,6 +147,7 @@ export default {
       .top {
         grid-area: top;
         // line-height: 50px;
+        font-family: shaonu;
         font-size: 16px;
         color: rgb(10, 120, 120);
         background: #cad;
@@ -188,6 +189,7 @@ export default {
           url(~@img/08.jpg) no-repeat right 50px / 100px;
         justify-content: center;
         align-items: center;
+        position: relative;
         img {
           // height: 100%;
           width: 100px;
