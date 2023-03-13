@@ -213,33 +213,29 @@ export default class el2img {
     }
     return fontFaceCss;
   }
-  whileCount () {
-
-  }
   /**
    * 通過window.getComputedStyle創建樣式
-   * @param {CSSStyleDeclaration} computedStyle 元素的樣式表, 通過windw.getConputedStyle獲得
+   * @param {StylePropertyMap|CSSStyleDeclaration} computedStyle 元素的樣式, 通過window.getComputedStyle或者element.computedStyleMap()獲得
    * @param {HTMLElement|String} target 要賦予樣式的目標選擇器或者元素
    * @param {String} pseudoElementName 偽元素名稱
    * @returns 樣式字符串
    */
   async createElementStyle(computedStyle, target, pseudoElementName = '') {
-    let selector = `.${ target.className }${ pseudoElementName }`
-    let tagName = pseudoElementName || target.tagName;
     let cssRuleDeclaration = '';
     let cssStyleProperty = '';
     let cssStyleValue = '';
-    let next = 0;
-    let use = this.supportComputedStyleMap && !pseudoElementName;
-    let useMethod = use ? 'getAll' : 'getPropertyValue';
+    let tagName = pseudoElementName || target.tagName;
     let defaultStyle = this.defaultStyleMap[tagName];
-    let entries = computedStyle.keys?.();
-    while (cssStyleProperty = use ? (next = entries.next() , !next.done && next.value) : computedStyle.item(next++)) {
+    let selector = `.${ target.className }${ pseudoElementName }`;
+    let useComputedStyleMap = this.supportComputedStyleMap && !pseudoElementName;
+    let next = useComputedStyleMap ? null : 0;
+    let useMethod = useComputedStyleMap ? 'getAll' : 'getPropertyValue';
+    let entries = useComputedStyleMap ? computedStyle.keys() : null;
+    while (cssStyleProperty = useComputedStyleMap ? (next = entries.next() , !next.done && next.value) : computedStyle.item(next++)) {
       cssStyleValue = computedStyle[useMethod](cssStyleProperty).toString();
       if (defaultStyle[useMethod](cssStyleProperty)?.toString() !== cssStyleValue && !this.skipStyleList.includes(cssStyleProperty)) {
         if (cssStyleProperty === 'font-family') {
           this.fontFace.add(cssStyleValue)
-          console.log(cssStyleValue)
         }
         if (this.notBase64Url(cssStyleValue)) {
           cssStyleValue = await this.replaceUrl(cssStyleValue)
@@ -267,7 +263,6 @@ export default class el2img {
     }
     return cssText
   }
-  // styleText: 樣式值
   /**
    * 將url替換成base64
    * @param {*} styleText 帶url的樣式
@@ -389,6 +384,7 @@ export default class el2img {
       this.imgHeight = options.height || this.el.offsetHeight // 圖片高度
     }
     await this.cloneElement(this.el, this.frag)
+    console.log(this.fontFace);
     let svgSrc = await this.createSvg()
     let img = await this.createImage(svgSrc)
     this.loadImageList.push(svgSrc)
