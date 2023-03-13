@@ -16,8 +16,11 @@ export default class el2img {
     '-webkit-background-size', // ios 該樣式會導致多張背景圖片出現尺寸錯亂
     'animation'
   ]
+  elementList = ['h1', 'h2', 'div', 'span', 'p', 'ul', 'li', 'input', 'img', 'a', 'button', 'canvas']
+  pseudoElementList = ['::before', '::after']
   loadImageList = [] // 圖片加載列表
   defaultStyleMap = {} //  默認元素樣式
+  fontFace = new Set()
   supportComputedStyleMap = Boolean(document.body.computedStyleMap) // 是否支持computedStyleMap方法
   constructor() {
     this.initDefaultStyle()
@@ -26,12 +29,10 @@ export default class el2img {
   initDefaultStyle() {
     let iframe = document.querySelector('#el2ImgDefaultStyle') || document.createElement('iframe');
     iframe.id = 'el2ImgDefaultStyle';
-    let tagList = ['h1', 'h2', 'div', 'span', 'p', 'ul', 'li', 'input', 'img', 'a', 'button', 'canvas']
-    let pseudoElList = ['::before', '::after']
     iframe.style.display = 'none'
     iframe.onload = (e) => {
       let contentDocument = iframe.contentDocument
-      tagList.forEach((item) => {
+      this.elementList.forEach((item) => {
         let dom = contentDocument.createElement(item)
         contentDocument.body.append(dom)
         if (this.supportComputedStyleMap) {
@@ -40,11 +41,39 @@ export default class el2img {
         }
         this.defaultStyleMap[dom.tagName] = window.getComputedStyle(dom)
       })
-      pseudoElList.forEach((item) => {
+      this.pseudoElementList.forEach((item) => {
         this.defaultStyleMap[item] = window.getComputedStyle(contentDocument.body, item)
       })
     }
     document.body.append(iframe)
+  }
+  /**
+   * 判斷文本是否含非base64的url
+   * @param {*} text 
+   * @returns { Boolean } 是否含有鏈接
+   */
+  notBase64Url (text) {
+    return /url\((?!['"]?data:.*?;base64,)/.test(text)
+  }
+  /**
+   * 获取图片转成base64
+   * @param { String } src 鏈接
+   * @returns { String } base64數據
+   */
+  getPicBase64(src) {
+    if (this.base64Reg.test(src)) {
+      return Promise.resolve(src)
+    }
+    if (this.cache[src]) {
+      return Promise.resolve(this.cache[src])
+    }
+    return fetch(src,{mode: 'cors', cache: 'reload'}).then(async res => {
+      let base64 = await this.blobToBase64(await res.blob());
+      this.cache[src] = base64;
+      return  Promise.resolve(base64)
+    }).catch(err => {
+      return Promise.reject(err)
+    })
   }
   // blob轉base64
   blobToBase64 (blob) {
@@ -62,134 +91,102 @@ export default class el2img {
       reader.readAsDataURL(blob);
     })
   }
-  // 获取图片转成base64
-  getPicBase64(src) {
-    if (this.base64Reg.test(src)) {
-      return src
-    }
-    return new Promise((resolve, reject) => {
-      if (this.cache[src]) {
-        return resolve(this.cache[src])
-      }
-      fetch(src,{mode: 'cors', cache: 'reload'})
-        .then(async res => {
-        let base64 = await this.blobToBase64(await res.blob());
-        this.cache[src] = base64;
-        resolve(base64);
-      }).catch(err => {
-        reject(err)
-      })
-    })
-  }
-  /**
-   * 偽元素樣式
-   * @param {*} el 要檢測偽元素的元素
-   * @param {*} tag 添加偽元素樣式的元素
-   * @returns 偽元素樣式文本
-   */
-  async hasPseudoElement(el, tag) {
-    // before偽元素
-    let beforeStyle = window.getComputedStyle(el, ':before')
-    // after偽元素
-    let afterStyle = window.getComputedStyle(el, ':after')
-    if (beforeStyle.content == 'none' && afterStyle.content == 'none') {
-      return ''
-    }
-    let beforeStyleText = ''
-    let afterStyleText = ''
-    let selector = this.createSelector(tag)
-    // ::before 偽元素
-    if (beforeStyle.content !== 'none') {
-      beforeStyleText = `${selector}::before { ${await this.createStyle(beforeStyle, '::before')} }`
-    }
-    // ::after 偽元素
-    if (afterStyle.content !== 'none') {
-      afterStyleText = `${selector}::after { ${await this.createStyle(afterStyle, '::after')} }`
-    }
-    return `${beforeStyleText}${afterStyleText}`
-  }
   /**
    * 遞歸复制节点
-   * @param {document} targetEl 克隆的目標
-   * @param {document} container 容器元素
-   * @param {string} layer 樣式
+   * @param {HTMLElement} srcEl 被克隆元素
+   * @param {HTMLElement} container 容器元素
+   * @param {string} className 樣式名
+   * @param {HTMLElement} styleEl 樣式元素
+   * @param {Boolean} isRoot 是否根目錄
    */
-  async compile(targetEl, container, layer = '1') {
+  async cloneElement(srcEl, container, className = 'clone',  styleEl = document.createElement('style'), isRoot = true) {
+    if (isRoot) {
+      container.append(styleEl);
+      styleEl.append(await this.getFontFace());
+    }
     // 元素節點
-    if (targetEl.nodeType == 1) {
-      let cloneEl = targetEl.cloneNode()
-      // 額外處理一些元素節點
-      switch (targetEl.tagName) {
-        case 'IMG': // 處理圖片標籤
-          try {
-            cloneEl.src = await this.getPicBase64(targetEl.src)
-            this.loadImageList.push(cloneEl.src)
-          } catch (err) {
-            console.log('圖片加載失敗', targetEl.src, err)
-            cloneEl.removeAttribute('src')
-          }
-          break
-        case 'CANVAS': // 處理canvas標籤
-          cloneEl = document.createElement('img')
-          Array.from(targetEl.attributes, (item) => {
-            cloneEl.setAttribute(item.name, item.value)
-          })
-          try {
-            cloneEl.src = targetEl.toDataURL('image/png')
-            this.loadImageList.push(cloneEl.src)
-          } catch (err) {
-            cloneEl.removeAttribute('src')
-            console.log('圖片轉換錯誤', err)
-          }
-          break
-        case 'video':
-          cloneEl = document.createElement('img')
-          Array.from(targetEl.attributes, (item) => {
-            cloneEl.setAttribute(item.name, item.value)
-            cloneEl.innerHTML = targetEl.value
-          })
-          try {
-            cloneEl.src = this.createCanvas(node)
-            this.loadImageList.push(cloneEl.src)
-          } catch (err) {
-            cloneEl.removeAttribute('src')
-            console.log('視頻轉換錯誤', err)
-          }
-          break
-        case 'INPUT': // 處理input text 標籤
-          if (targetEl.getAttribute('type') === 'text') {
-            cloneEl = document.createElement('div')
-            Array.from(targetEl.attributes, (item) => {
-              cloneEl.setAttribute(item.name, item.value)
-              cloneEl.innerHTML = targetEl.value
-            })
-          }
-          break
-        default:
-          break
-      }
-      // cloneEl.classList.add(`layer-${layer}`)
-      cloneEl.className = `layer-${layer}`
-      let style = this.supportComputedStyleMap ? targetEl.computedStyleMap() : window.getComputedStyle(targetEl)
-      let styleTag = document.createElement('style')
-      let styleText = await this.hasPseudoElement(targetEl, cloneEl)
-      styleTag.innerHTML = styleText + `${await this.createElStyle(style, cloneEl)}`
+    if (srcEl.nodeType == 1) {
+      let cloneEl = await this.translateElement(srcEl);
+      cloneEl.removeAttribute('style');
+      cloneEl.setAttribute('class', className);
+      let style = this.supportComputedStyleMap ? srcEl.computedStyleMap() : window.getComputedStyle(srcEl)
+      let elementStyle = await this.createElementStyle(style, cloneEl)
+      let pseudoElementStyle = await this.pseudoElementStyle(srcEl, cloneEl);
+      styleEl.append(`${ elementStyle }\n${ pseudoElementStyle }\n`);
       container.appendChild(cloneEl)
-      container.append(styleTag)
-      if (targetEl.childNodes.length > 0) {
-        for (let i = 0; i < targetEl.childNodes.length; i++) {
-          await this.compile(targetEl.childNodes[i], cloneEl, `${layer}-${i + 1}`)
+      if (srcEl.childNodes.length > 0) {
+        for (let i = 0; i < srcEl.childNodes.length; i++) {
+          await this.cloneElement(srcEl.childNodes[i], cloneEl, `${className}-${i + 1}`, styleEl, false)
         }
       }
     }
     // 文本節點
-    if (targetEl.nodeType == 3) {
-      container.append(document.createTextNode(targetEl.nodeValue))
+    if (srcEl.nodeType == 3) {
+      container.append(document.createTextNode(srcEl.nodeValue))
     }
   }
   /**
+   * 轉換元素
+   * @param {*} srcEl 轉換元素
+   * @returns 
+   */
+  async translateElement (srcEl) {
+    let cloneEl = srcEl.cloneNode()
+    // 額外處理一些元素節點
+    switch (srcEl.tagName) {
+      case 'IMG': // 處理圖片標籤
+        try {
+          cloneEl.src = await this.getPicBase64(srcEl.src)
+          this.loadImageList.push(cloneEl.src)
+        } catch (err) {
+          console.log('圖片加載失敗', srcEl.src, err)
+          cloneEl.removeAttribute('src')
+        }
+        break
+      case 'CANVAS': // 處理canvas標籤
+        cloneEl = document.createElement('img')
+        Array.from(srcEl.attributes, (item) => {
+          cloneEl.setAttribute(item.name, item.value)
+        })
+        try {
+          cloneEl.src = srcEl.toDataURL('image/png')
+          this.loadImageList.push(cloneEl.src)
+        } catch (err) {
+          cloneEl.removeAttribute('src')
+          console.log('圖片轉換錯誤', err)
+        }
+        break
+      case 'video':
+        cloneEl = document.createElement('img')
+        Array.from(srcEl.attributes, (item) => {
+          cloneEl.setAttribute(item.name, item.value)
+          cloneEl.innerHTML = srcEl.value
+        })
+        try {
+          cloneEl.src = this.createCanvas(node)
+          this.loadImageList.push(cloneEl.src)
+        } catch (err) {
+          cloneEl.removeAttribute('src')
+          console.log('視頻轉換錯誤', err)
+        }
+        break
+      case 'INPUT': // 處理input text 標籤
+        if (srcEl.getAttribute('type') === 'text') {
+          cloneEl = document.createElement('div')
+          Array.from(srcEl.attributes, (item) => {
+            cloneEl.setAttribute(item.name, item.value)
+            cloneEl.innerHTML = srcEl.value
+          })
+        }
+        break
+      default:
+        break
+    }
+    return cloneEl;
+  }
+  /**
    * 用元素樣式名創建選擇器
-   * @param {*} el 創建選擇器的元素
+   * @param {HTMLElement} el 創建選擇器的元素
    * @returns 樣式選擇器
    */
   createSelector(el) {
@@ -201,86 +198,82 @@ export default class el2img {
     return tagName + className
   }
   // 获取字体
-  getFontFace () {
-    for (let i = 0; i < document.styleSheets.length; i++) {
-      for (let y = 0; y < document.styleSheets.item(i).cssRules.length; y++) {
-          if (document.styleSheets.item(i).cssRules.item(y)[Symbol.toStringTag] === 'CSSFontFaceRule') {
-            // console.log(document.styleSheets.item(i).cssRules.item(y))
+  async getFontFace () {
+    let fontFaceCss = '';
+    let sheets = document.styleSheets;
+    for (let i = 0; i < sheets.length; i++) {
+      for (let y = 0; y < sheets.item(i).cssRules.length; y++) {
+        if (sheets.item(i).cssRules.item(y)[Symbol.toStringTag] === 'CSSFontFaceRule') {
+          let cssText = sheets.item(i).cssRules.item(y).cssText;
+          if (this.notBase64Url(cssText)) {
+            fontFaceCss += await this.replaceUrl(cssText);
           }
+        }
       }
     }
+    return fontFaceCss;
+  }
+  whileCount () {
+
   }
   /**
    * 通過window.getComputedStyle創建樣式
-   * @param {*} computedStyle 元素的樣式表, 通過windw.getConputedStyle獲得
-   * @param {*} target 要賦予樣式的目標選擇器或者元素
+   * @param {CSSStyleDeclaration} computedStyle 元素的樣式表, 通過windw.getConputedStyle獲得
+   * @param {HTMLElement|String} target 要賦予樣式的目標選擇器或者元素
+   * @param {String} pseudoElementName 偽元素名稱
    * @returns 樣式字符串
    */
-  async createStyle(computedStyle, target) {
-    let styleStr = ''
-    let count = 0
-    let styleName = ''
-    let styleText = ''
-    // 判斷是不是偽元素
-    let isElement = typeof target === 'object'
-    let tagName = isElement ? target.tagName : target
-    while ((styleName = computedStyle.item(count))) {
-      count++
-      styleText = computedStyle.getPropertyValue(styleName)
-      if ((target && styleText === this.defaultStyleMap[tagName]?.getPropertyValue(styleName)) || this.skipStyleList.includes(styleName)) continue
-      if (/url\(.*\)/.test(styleText) && !/url\(data:.*\)/.test(styleText)) {
-        styleText = await this.replaceBgImg(styleText)
+  async createElementStyle(computedStyle, target, pseudoElementName = '') {
+    let selector = `.${ target.className }${ pseudoElementName }`
+    let tagName = pseudoElementName || target.tagName;
+    let cssRuleDeclaration = '';
+    let cssStyleProperty = '';
+    let cssStyleValue = '';
+    let next = 0;
+    let use = this.supportComputedStyleMap && !pseudoElementName;
+    let useMethod = use ? 'getAll' : 'getPropertyValue';
+    let defaultStyle = this.defaultStyleMap[tagName];
+    let entries = computedStyle.keys?.();
+    while (cssStyleProperty = use ? (next = entries.next() , !next.done && next.value) : computedStyle.item(next++)) {
+      cssStyleValue = computedStyle[useMethod](cssStyleProperty).toString();
+      if (defaultStyle[useMethod](cssStyleProperty)?.toString() !== cssStyleValue && !this.skipStyleList.includes(cssStyleProperty)) {
+        if (cssStyleProperty === 'font-family') {
+          this.fontFace.add(cssStyleValue)
+          console.log(cssStyleValue)
+        }
+        if (this.notBase64Url(cssStyleValue)) {
+          cssStyleValue = await this.replaceUrl(cssStyleValue)
+        }
+        cssRuleDeclaration += `${cssStyleProperty}: ${cssStyleValue};\n`
       }
-      if (this.importantList.includes(styleName)) {
-        styleText += '!important'
-      }
-      styleStr += `${styleName}: ${styleText};`
     }
-    return isElement ? `${this.createSelector(target)}{${styleStr}}` : styleStr
+    return `${ selector } { ${cssRuleDeclaration} }`
   }
   /**
-   * 通過el.computedStyleMap創建樣式
-   * @param {*} styleMap 通過el.computedStyleMap的樣式
-   * @param {*} el 賦予樣式的元素
-   * @returns 樣式字符串
+   * 偽元素樣式
+   * @param {*} el 要檢測偽元素的元素
+   * @param {*} tag 添加偽元素樣式的元素
+   * @returns 偽元素樣式文本
    */
-  async createElStyle(styleMap, el) {
-    if (this.supportComputedStyleMap) {
-      return new Promise((resolve) => {
-        let cssText = ''
-        let imgCount = 0
-        let imgTotalCount = 0
-        styleMap.forEach(async (cssVal, cssKey) => {
-          if (cssKey === 'font-family') {
-            // console.log(cssVal, cssVal.toString(), cssKey)
-          }
-          if (this.defaultStyleMap[el.tagName]?.get(cssKey)?.toString() !== cssVal.toString()) {
-            let styleText = cssVal.toString()
-            if (/url\(.*\)/.test(styleText) && !/url\(data:.*\)/.test(styleText)) {
-              imgTotalCount++
-              styleText = await this.replaceBgImg(styleText)
-              imgCount++
-            }
-            cssText += `${cssKey}: ${styleText};`
-          }
-          if (imgTotalCount > 0 && imgTotalCount === imgCount) {
-            resolve(el ? `${this.createSelector(el)}{${cssText}}` : cssText)
-          }
-        })
-        if (!imgTotalCount) {
-          resolve(el ? `${this.createSelector(el)}{${cssText}}` : cssText)
-        }
-      })
+  async pseudoElementStyle(srcEl, el) {
+    let cssText = '';
+    for (let index in this.pseudoElementList) {
+      let pseudoElementName = this.pseudoElementList[index];
+      let style = window.getComputedStyle(srcEl, pseudoElementName);
+      if (style.content == 'none') {
+        continue
+      }
+      cssText += await this.createElementStyle(style, el, pseudoElementName)
     }
-    return this.createStyle(styleMap, el)
+    return cssText
   }
   // styleText: 樣式值
   /**
-   * 將背景圖片url替換base64
+   * 將url替換成base64
    * @param {*} styleText 帶url的樣式
    * @returns 替換後的樣式
    */
-  async replaceBgImg(styleText) {
+  async replaceUrl(styleText) {
     let urlReg = /url\(["'](.*?)['"]\)/g
     let newStyle = styleText
     let urlExec = ''
@@ -289,10 +282,9 @@ export default class el2img {
       try {
         let src = await this.getPicBase64(url)
         this.loadImageList.push(src)
-        // await this.createImage(res)
         newStyle = newStyle.replace(url, src)
       } catch (err) {
-        console.log('背景加載失敗', url, err)
+        console.log('資源加載', url, err)
       }
     }
     return newStyle
@@ -383,6 +375,7 @@ export default class el2img {
    * @returns base64格式png圖片
    */
   async draw(options) {
+    console.time('截圖時間');
     this.options = options
     this.el = options.el // dom節點
     this.quality = options.quality || 1 // 成像質量
@@ -395,11 +388,10 @@ export default class el2img {
     } else {
       this.imgHeight = options.height || this.el.offsetHeight // 圖片高度
     }
-    await this.compile(this.el, this.frag)
+    await this.cloneElement(this.el, this.frag)
     let svgSrc = await this.createSvg()
     let img = await this.createImage(svgSrc)
     this.loadImageList.push(svgSrc)
-    // this.svgEl = svgSrc
     await this.awaitImgLoad()
     let canvasData = await this.createCanvas(img, this.quality)
     if (!this.supportComputedStyleMap) {
@@ -407,6 +399,7 @@ export default class el2img {
       await this.sleep(50)
       canvasData = this.createCanvas(img, this.quality, this.canvasEl)
     }
+    console.timeEnd('截圖時間');
     return canvasData
   }
   /**
