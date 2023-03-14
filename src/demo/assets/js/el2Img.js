@@ -195,18 +195,12 @@ export default class el2img {
         break
       case 'INPUT': // 處理input text 標籤
         switch (srcEl.getAttribute('type')) {
-          case 'text':
-          case 'date':
-          case 'tel':
-          case 'password':
-          case 'number':
-            cloneEl.setAttribute('value', srcEl.value)
-            break;
           case 'checkbox':
           case 'radio':
               cloneEl.setAttribute('checked', srcEl.checked)
               break;
           default:
+            cloneEl.setAttribute('value', srcEl.value)
             break;
         }
         break

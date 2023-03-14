@@ -78,26 +78,25 @@ export default {
         }
     },
     async clickDownLoad () {
-        console.time('創建圖片');
-        // domToImage.toPng(this.$refs.source).then(res => {
-        //   console.timeEnd('創建圖片');
-        //   let img = new Image();
-        //   img.src = res;
-        //   this.$refs.svg.append(img);
-        // })
-
-
-        // console.time('創建圖片1');
+        console.time('創建圖片1');
         this.el2Image.draw(this.$refs.source, {type: 'svg'}).then(res => {
           console.timeEnd('創建圖片1');
           if (typeof res === 'string') {
             let img = new Image();
             img.src = res;
-            this.$refs.svg.append(img);
+            this.$refs.img.append(img);
           } else {
             this.$refs.svg.append(res);
           }
         });    
+
+        console.time('創建圖片');
+        domToImage.toSvg(this.$refs.source).then(res => {
+          console.timeEnd('創建圖片');
+          let img = new Image();
+          img.src = res;
+          this.$refs.svg.append(img);
+        })
         // this.$refs.svg.append(this.el2Image.svgEl);
         // this.$refs.canvas1.append(this.el2Image.canvasEl);
           // let a = document.createElement('a');
