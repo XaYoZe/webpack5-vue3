@@ -12,11 +12,16 @@
               <div class="top">文本文本</div>
               <div class="left">
                 <div style="background: #cda;">
-                  <input class="text" type="text" value="123">
+                  <input class="text" type="text" :value="inputValue">
+                  <input type="checkbox" :checked="checkBoxValue">
+                  <input type="radio" :checked="checkBoxValue">
+                  <input type="date">
+                  <input type="tel">
+                  <input type="button" value="提交">
                 </div>
               </div>
               <div class="right">
-                <div style="position: absolute; bottom: 0; left: 20px;width:80px;height: 50px;background: #cda;background-size: 100%;" :style="{'background-image': `url('${require('@img/09(11).png')}')`}"></div>
+                <div style="position: absolute; bottom: 0; left: 20px;width:80px;height: 50px;background: #cda;background-size: 100%;" :style="{'background-image': `url('${require('@img/08.jpg')}')`}"></div>
                 <img ref="img" title="DSASDA" src="@img/07.jpeg">
                 <div class="first-row">
                   <div></div>
@@ -42,22 +47,18 @@
         </div>
       </div>
     </div>
-    <div class="style-test">
-      <div class="block-out" id="blockOut">
-        <div class="block-in" id="blockIn" style="width: 50px;height: 50px;margin-bottom: 50px;background: #4991bb;"></div>
-      </div>
-      <div class="block1"></div>
-    </div>
   </div>
 </template>
 <script>
 import El2Image from '@js/el2Img';
-import domToImage from '@js/dom-to-image';
+import domToImage from '../assets/js/dom-to-image';
 export default {
   data() {
     return {
       imgList: [],
       el2Image: null,
+      checkBoxValue: true,
+      inputValue: 515
     };
   },
   mounted () {
@@ -77,17 +78,28 @@ export default {
         }
     },
     async clickDownLoad () {
-        // domToImage.toSvg(this.$refs.source).then(res => {
+        console.time('創建圖片');
+        // domToImage.toPng(this.$refs.source).then(res => {
+        //   console.timeEnd('創建圖片');
         //   let img = new Image();
         //   img.src = res;
         //   this.$refs.svg.append(img);
         // })
-        let imgSrc = await this.el2Image.draw({el: this.$refs.source });    
-        let img = new Image();
-        img.src = imgSrc;
-        this.$refs.img.append(img);
-        this.$refs.svg.append(this.el2Image.svgEl);
-        this.$refs.canvas1.append(this.el2Image.canvasEl);
+
+
+        // console.time('創建圖片1');
+        this.el2Image.draw(this.$refs.source, {type: 'svg'}).then(res => {
+          console.timeEnd('創建圖片1');
+          if (typeof res === 'string') {
+            let img = new Image();
+            img.src = res;
+            this.$refs.svg.append(img);
+          } else {
+            this.$refs.svg.append(res);
+          }
+        });    
+        // this.$refs.svg.append(this.el2Image.svgEl);
+        // this.$refs.canvas1.append(this.el2Image.canvasEl);
           // let a = document.createElement('a');
           // a.href = this.el2Image.svgEl; //window.URL.createObjectURL(new Blob([this.el2Image.svgE]));
           // a.download = 'img.svg';
@@ -147,7 +159,7 @@ export default {
       .top {
         grid-area: top;
         // line-height: 50px;
-        font-family: shaonu;
+        font-family: shaonu,sans-serif;
         font-size: 16px;
         color: rgb(10, 120, 120);
         background: #cad;
@@ -174,10 +186,6 @@ export default {
           font-size: 24px;
           color: #bad;
           border: 1px solid;
-          position: absolute;
-          top: 50%;
-          left: 0;
-          transform: translateY(-50%);
         }
         > div {
           height: auto;
@@ -209,21 +217,6 @@ export default {
           background: #4991bb;
         }
       }
-    }
-
-  }
-  .style-test {
-    padding-left: 100px;
-    .block-out {
-      height: auto;
-      width: max-content;
-      .block-in {
-      }
-    }
-    .block1 {
-      background: #bad;
-      width: 50px;
-      height: 50px;
     }
   }
 }

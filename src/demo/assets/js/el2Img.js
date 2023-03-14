@@ -16,14 +16,18 @@ export default class el2img {
     '-webkit-background-size', // ios 該樣式會導致多張背景圖片出現尺寸錯亂
     'animation'
   ]
-  elementList = ['h1', 'h2', 'div', 'span', 'p', 'ul', 'li', 'input', 'img', 'a', 'button', 'canvas']
+  elementList = ['h1', 'h2', 'div', 'span', 'p', 'ul', 'input', 'li', 'img', 'a', 'button', 'canvas']
+  inputType = ['checkbox', 'audio', 'text', 'date']
   pseudoElementList = ['::before', '::after']
   loadImageList = [] // 圖片加載列表
-  defaultStyleMap = {} //  默認元素樣式
-  fontFace = new Set()
+  defaultStyleMap = {}; //  默認元素樣式
+  useFonts = new Set();
+  pageFontsCache = {};
+  pageFontsLoaded = false;
   supportComputedStyleMap = Boolean(document.body.computedStyleMap) // 是否支持computedStyleMap方法
   constructor() {
     this.initDefaultStyle()
+    this.getPageFonts();
   }
   // 初始化默認樣式, 用於減小svg體積
   initDefaultStyle() {
@@ -31,21 +35,44 @@ export default class el2img {
     iframe.id = 'el2ImgDefaultStyle';
     iframe.style.display = 'none'
     iframe.onload = (e) => {
-      let contentDocument = iframe.contentDocument
+      let contentDocument = iframe.contentDocument;
       this.elementList.forEach((item) => {
-        let dom = contentDocument.createElement(item)
-        contentDocument.body.append(dom)
-        if (this.supportComputedStyleMap) {
-          this.defaultStyleMap[dom.tagName] = dom.computedStyleMap()
+        if (item === 'input') {
+          this.inputType.forEach(inputType => {
+            let dom = contentDocument.createElement('input');
+            dom.type = inputType;
+            contentDocument.body.append(dom)
+            this.defaultStyleMap[dom.tagName + dom.type] = this.supportComputedStyleMap ? dom.computedStyleMap() : window.getComputedStyle(dom);
+          })
           return
         }
-        this.defaultStyleMap[dom.tagName] = window.getComputedStyle(dom)
+        let dom = contentDocument.createElement(item)
+        contentDocument.body.append(dom)
+        this.defaultStyleMap[dom.tagName] = this.supportComputedStyleMap ? dom.computedStyleMap() : window.getComputedStyle(dom);
       })
       this.pseudoElementList.forEach((item) => {
         this.defaultStyleMap[item] = window.getComputedStyle(contentDocument.body, item)
       })
     }
     document.body.append(iframe)
+  }
+  // 获取字体
+  async getPageFonts () {
+    if (!this.pageFontsLoaded) {
+      let sheets = document.styleSheets;
+      for (let i = 0; i < sheets.length; i++) {
+        for (let y = 0; y < sheets.item(i).cssRules.length; y++) {
+          let cssRules = sheets.item(i).cssRules.item(y);
+          if (cssRules[Symbol.toStringTag] === 'CSSFontFaceRule' && !this.pageFontsCache[cssRules.style.fontFamily]) {
+            this.pageFontsCache[cssRules.style.fontFamily] = cssRules.cssText;;
+            if (this.notBase64Url(cssRules.cssText)) {
+              this.pageFontsCache[cssRules.style.fontFamily] = await this.replaceUrl(cssRules.cssText);
+            }
+          }
+        }
+      }
+      this.pageFontsLoaded = true;
+    }
   }
   /**
    * 判斷文本是否含非base64的url
@@ -67,7 +94,8 @@ export default class el2img {
     if (this.cache[src]) {
       return Promise.resolve(this.cache[src])
     }
-    return fetch(src,{mode: 'cors', cache: 'reload'}).then(async res => {
+    // ,{mode: 'cors', cache: 'reload'}
+    return fetch(src).then(async res => {
       let base64 = await this.blobToBase64(await res.blob());
       this.cache[src] = base64;
       return  Promise.resolve(base64)
@@ -102,7 +130,6 @@ export default class el2img {
   async cloneElement(srcEl, container, className = 'clone',  styleEl = document.createElement('style'), isRoot = true) {
     if (isRoot) {
       container.append(styleEl);
-      styleEl.append(await this.getFontFace());
     }
     // 元素節點
     if (srcEl.nodeType == 1) {
@@ -137,7 +164,6 @@ export default class el2img {
       case 'IMG': // 處理圖片標籤
         try {
           cloneEl.src = await this.getPicBase64(srcEl.src)
-          this.loadImageList.push(cloneEl.src)
         } catch (err) {
           console.log('圖片加載失敗', srcEl.src, err)
           cloneEl.removeAttribute('src')
@@ -150,7 +176,6 @@ export default class el2img {
         })
         try {
           cloneEl.src = srcEl.toDataURL('image/png')
-          this.loadImageList.push(cloneEl.src)
         } catch (err) {
           cloneEl.removeAttribute('src')
           console.log('圖片轉換錯誤', err)
@@ -160,58 +185,35 @@ export default class el2img {
         cloneEl = document.createElement('img')
         Array.from(srcEl.attributes, (item) => {
           cloneEl.setAttribute(item.name, item.value)
-          cloneEl.innerHTML = srcEl.value
         })
         try {
           cloneEl.src = this.createCanvas(node)
-          this.loadImageList.push(cloneEl.src)
         } catch (err) {
           cloneEl.removeAttribute('src')
           console.log('視頻轉換錯誤', err)
         }
         break
       case 'INPUT': // 處理input text 標籤
-        if (srcEl.getAttribute('type') === 'text') {
-          cloneEl = document.createElement('div')
-          Array.from(srcEl.attributes, (item) => {
-            cloneEl.setAttribute(item.name, item.value)
-            cloneEl.innerHTML = srcEl.value
-          })
+        switch (srcEl.getAttribute('type')) {
+          case 'text':
+          case 'date':
+          case 'tel':
+          case 'password':
+          case 'number':
+            cloneEl.setAttribute('value', srcEl.value)
+            break;
+          case 'checkbox':
+          case 'radio':
+              cloneEl.setAttribute('checked', srcEl.checked)
+              break;
+          default:
+            break;
         }
         break
       default:
         break
     }
     return cloneEl;
-  }
-  /**
-   * 用元素樣式名創建選擇器
-   * @param {HTMLElement} el 創建選擇器的元素
-   * @returns 樣式選擇器
-   */
-  createSelector(el) {
-    let className = ''
-    let tagName = `${el.tagName.toLocaleLowerCase()}`
-    el.classList.forEach((item) => {
-      className += '.' + item
-    })
-    return tagName + className
-  }
-  // 获取字体
-  async getFontFace () {
-    let fontFaceCss = '';
-    let sheets = document.styleSheets;
-    for (let i = 0; i < sheets.length; i++) {
-      for (let y = 0; y < sheets.item(i).cssRules.length; y++) {
-        if (sheets.item(i).cssRules.item(y)[Symbol.toStringTag] === 'CSSFontFaceRule') {
-          let cssText = sheets.item(i).cssRules.item(y).cssText;
-          if (this.notBase64Url(cssText)) {
-            fontFaceCss += await this.replaceUrl(cssText);
-          }
-        }
-      }
-    }
-    return fontFaceCss;
   }
   /**
    * 通過window.getComputedStyle創建樣式
@@ -224,7 +226,7 @@ export default class el2img {
     let cssRuleDeclaration = '';
     let cssStyleProperty = '';
     let cssStyleValue = '';
-    let tagName = pseudoElementName || target.tagName;
+    let tagName = pseudoElementName || target.tagName + (target.tagName === 'INPUT' ? target.type : '');
     let defaultStyle = this.defaultStyleMap[tagName];
     let selector = `.${ target.className }${ pseudoElementName }`;
     let useComputedStyleMap = this.supportComputedStyleMap && !pseudoElementName;
@@ -233,9 +235,11 @@ export default class el2img {
     let entries = useComputedStyleMap ? computedStyle.keys() : null;
     while (cssStyleProperty = useComputedStyleMap ? (next = entries.next() , !next.done && next.value) : computedStyle.item(next++)) {
       cssStyleValue = computedStyle[useMethod](cssStyleProperty).toString();
-      if (defaultStyle[useMethod](cssStyleProperty)?.toString() !== cssStyleValue && !this.skipStyleList.includes(cssStyleProperty)) {
+      if (defaultStyle?.[useMethod](cssStyleProperty)?.toString() !== cssStyleValue && !this.skipStyleList.includes(cssStyleProperty)) {
         if (cssStyleProperty === 'font-family') {
-          this.fontFace.add(cssStyleValue)
+          cssStyleValue.split(',').forEach(item => {
+            this.useFonts.add(item.trim())
+          })
         }
         if (this.notBase64Url(cssStyleValue)) {
           cssStyleValue = await this.replaceUrl(cssStyleValue)
@@ -276,13 +280,19 @@ export default class el2img {
       let url = urlExec[1]
       try {
         let src = await this.getPicBase64(url)
-        this.loadImageList.push(src)
         newStyle = newStyle.replace(url, src)
       } catch (err) {
         console.log('資源加載', url, err)
       }
     }
     return newStyle
+  }
+  addFonts (styleElement) {
+    this.useFonts.forEach(font => {
+      if (this.pageFontsCache[font]) {
+        styleElement.insertBefore(new Text(this.pageFontsCache[font]), styleElement.firstChild)
+      }
+    })
   }
   /**
    * 生成svga鏈接
@@ -313,10 +323,8 @@ export default class el2img {
     return new Promise((res, rej) => {
       var image = new Image()
       image.src = src
-      image.onload = () => {
-        res(image)
-      }
-      image.onerror = rej
+      image.onload = () => res(image)
+      image.onerror = (err) => rej(err)
     })
   }
   //
@@ -338,41 +346,15 @@ export default class el2img {
     this.canvasEl = canvas
     return canvas.toDataURL('image/png', quality)
   }
-  // 下載
-  download(base64) {
-    let a = document.createElement('a')
-    a.href = base64
-    a.download = 'download'
-    a.click()
-  }
-  // 等待圖片加載結束
-  awaitImgLoad() {
-    let count = 0
-    let totalCount = this.loadImageList.length
-    return new Promise((resolve) => {
-      for (let i in this.loadImageList) {
-        let img = new Image()
-        img.src = this.loadImageList[i]
-        img.onload = img.onerror = () => {
-          count++
-          console.log('加載圖片', count / totalCount * 100 + '%' )
-          if (count === totalCount) {
-            console.log('加載所有圖片文件完成')
-            resolve()
-          }
-        }
-      }
-    })
-  }
   /**
    * 渲染圖片
-   * @param {Object} options {el: 要截圖的元素, quality: 輸出圖片質量, width: 輸出圖片寬度, height: 輸出圖片高度}
+   * @param {HTMLElement} el 要截圖的元素
+   * @param {Object} options {quality: 輸出圖片質量, width: 輸出圖片寬度, height: 輸出圖片高度}
    * @returns base64格式png圖片
    */
-  async draw(options) {
-    console.time('截圖時間');
+  async draw(el, options) {
+    this.el = el // dom節點
     this.options = options
-    this.el = options.el // dom節點
     this.quality = options.quality || 1 // 成像質量
     this.imgWidth = options.width || this.el.offsetWidth // 圖片寬度
     this.scale = 1 // 圖片縮放比例
@@ -383,20 +365,25 @@ export default class el2img {
     } else {
       this.imgHeight = options.height || this.el.offsetHeight // 圖片高度
     }
-    await this.cloneElement(this.el, this.frag)
-    console.log(this.fontFace);
-    let svgSrc = await this.createSvg()
-    let img = await this.createImage(svgSrc)
-    this.loadImageList.push(svgSrc)
-    await this.awaitImgLoad()
-    let canvasData = await this.createCanvas(img, this.quality)
-    if (!this.supportComputedStyleMap) {
-      // 延遲後重繪一遍, 解決ios圖片渲染不出來的問題
-      await this.sleep(50)
-      canvasData = this.createCanvas(img, this.quality, this.canvasEl)
+    let styleElement = document.createElement('style');
+    await this.cloneElement(this.el, this.frag, 'clone', styleElement)
+    this.frag.insertBefore(styleElement, this.frag.firstChild);
+    this.addFonts(styleElement)
+    let svgSrc = await this.createSvg();
+    switch (options.type) {
+      case 'svg':
+        return svgSrc;
+      case 'debug':
+        return this.svgEl;
+      default:
+        let img = await this.createImage(svgSrc)
+        if (!this.supportComputedStyleMap) {
+          // 处理ios圖片渲染不出來的問題
+          await this.sleep(50)
+        }
+        let canvasData = await this.createCanvas(img, this.quality, this.canvasEl)
+        return canvasData
     }
-    console.timeEnd('截圖時間');
-    return canvasData
   }
   /**
    * 休眠
