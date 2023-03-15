@@ -29,6 +29,7 @@
                 <div class="next-row"></div>
               </div>
           </div>
+          <img v-for="i in 6"  :key="i" :src="require(`@img/${i}.jpg`)">
         </div>
       </div>
       <div class="svg" ref="svg">
@@ -79,7 +80,7 @@ export default {
     },
     async clickDownLoad () {
         console.time('創建圖片1');
-        this.el2Image.draw(this.$refs.source, {type: 'svg'}).then(res => {
+        this.el2Image.draw(this.$refs.source, {type: 'png'}).then(res => {
           console.timeEnd('創建圖片1');
           if (typeof res === 'string') {
             let img = new Image();
@@ -90,20 +91,13 @@ export default {
           }
         });    
 
-        console.time('創建圖片');
-        domToImage.toSvg(this.$refs.source).then(res => {
-          console.timeEnd('創建圖片');
-          let img = new Image();
-          img.src = res;
-          this.$refs.svg.append(img);
-        })
-        // this.$refs.svg.append(this.el2Image.svgEl);
-        // this.$refs.canvas1.append(this.el2Image.canvasEl);
-          // let a = document.createElement('a');
-          // a.href = this.el2Image.svgEl; //window.URL.createObjectURL(new Blob([this.el2Image.svgE]));
-          // a.download = 'img.svg';
-          // a.click();
-        // this.$refs.svg.append();
+        // console.time('創建圖片');
+        // domToImage.toPng(this.$refs.source).then(res => {
+        //   console.timeEnd('創建圖片');
+        //   let img = new Image();
+        //   img.src = res;
+        //   this.$refs.svg.append(img);
+        // })
     },
   },
 };
@@ -216,6 +210,13 @@ export default {
           background: #4991bb;
         }
       }
+    }
+  }
+  .svg, .canvas, .img {
+    width: 250px;
+    img {
+      width: 100%;
+      display: block;
     }
   }
 }
