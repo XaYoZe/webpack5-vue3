@@ -15,13 +15,10 @@
                   <input class="text" type="text" :value="inputValue">
                   <input type="checkbox" :checked="checkBoxValue">
                   <input type="radio" :checked="checkBoxValue">
-                  <input type="date">
-                  <input type="tel">
-                  <input type="button" value="提交">
                 </div>
               </div>
               <div class="right">
-                <div style="position: absolute; bottom: 0; left: 20px;width:80px;height: 50px;background: #cda;background-size: 100%;" :style="{'background-image': `url('${require('@img/08.jpg')}')`}"></div>
+                <div style="position: absolute; bottom: 0; left: 20px;width:80px;height: 60px;background: #cda;background-size: 100%;" :style="{'background-image': `url('${require('@img/08.jpg')}')`}"></div>
                 <img ref="img" title="DSASDA" src="@img/07.jpeg">
                 <div class="first-row">
                   <div></div>
@@ -70,17 +67,21 @@ export default {
   methods: {
     initCanvas () {
         let ctx = this.$refs.canvas.getContext('2d');
+        this.$refs.canvas.style.width = '250px';
+        this.$refs.canvas.style.height = '125px';
+        this.$refs.canvas.width = 250 * 3;
+        this.$refs.canvas.height = 125 * 3;
         let img = new Image();
         img.src = require('@img/09(11).png');
         ctx.fillStyle = '#acdacd';
         img.onload = () => {
-            ctx.drawImage(img, 0, 0, 300, 250);
+            ctx.drawImage(img, 0, 0, this.$refs.canvas.width, this.$refs.canvas.height);
             ctx.fillRect(10,10, 20, 20);
         }
     },
     async clickDownLoad () {
         console.time('創建圖片1');
-        this.el2Image.draw(this.$refs.source, {type: 'png'}).then(res => {
+        this.el2Image.draw(this.$refs.source, {type: 'png', width: 500}).then(res => {
           console.timeEnd('創建圖片1');
           if (typeof res === 'string') {
             let img = new Image();
@@ -124,8 +125,9 @@ export default {
       }
       margin-left: 20px;
       .content {
-        > img {
+        > ::v-deep img {
           width: 250px;
+          display: block;
         }
       }
     }
@@ -194,6 +196,7 @@ export default {
         img {
           // height: 100%;
           width: 100px;
+          height: 140px;
           display: block;
         }
         .first-row {
@@ -212,11 +215,9 @@ export default {
       }
     }
   }
-  .svg, .canvas, .img {
-    width: 250px;
-    img {
-      width: 100%;
-      display: block;
+  .img {
+    > :v-deep img {
+      width: 250px;
     }
   }
 }

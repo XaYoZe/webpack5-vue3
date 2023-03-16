@@ -24,7 +24,7 @@ export default class el2img {
   useFonts = new Set();
   pageFontsCache = {};
   pageFontsLoaded = false;
-  supportComputedStyleMap = false && Boolean(document.body.computedStyleMap) // 是否支持computedStyleMap方法
+  supportComputedStyleMap = Boolean(document.body.computedStyleMap) // 是否支持computedStyleMap方法
   totalStyleCount = 0;
   loadStyleCount = 0;
   constructor() {
@@ -312,12 +312,14 @@ export default class el2img {
     let svgXml = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     let foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
     svgXml.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
-    svgXml.appendChild(foreignObject)
-    svgXml.setAttribute('width', this.imgWidth)
-    svgXml.setAttribute('height', this.imgHeight)
-    foreignObject.setAttribute('width', this.imgWidth)
-    foreignObject.setAttribute('height', this.imgHeight)
+    svgXml.setAttribute('width', this.imgWidth * this.scaleX)
+    svgXml.setAttribute('height', this.imgHeight * this.scaleY)
+    foreignObject.setAttribute('width', this.imgWidth * this.scaleX)
+    foreignObject.setAttribute('height', this.imgHeight * this.scaleY);
+    foreignObject.style.transform = `scale(${this.scaleX},${this.scaleY})`;
+    foreignObject.style.transformOrigin = `left top`;
     foreignObject.append(this.frag)
+    svgXml.append(foreignObject)
     this.svgEl = svgXml
     // 格式化
     var serializer = new XMLSerializer()
@@ -331,7 +333,6 @@ export default class el2img {
   createImage(src) {
     return new Promise((res, rej) => {
       var image = new Image()
-      image.crossOrigin = 'Anonymous';
       image.src = src;
       image.onload = () => res(image)
       image.onerror = (err) => rej(err)
@@ -347,8 +348,8 @@ export default class el2img {
    */
   async createCanvas(image, quality = 1, cvs, onlyDraw) {
     var canvas = cvs || document.createElement('canvas') //准备空画布
-    canvas.width = (image.width || image.offsetWidth) * window.devicePixelRatio;
-    canvas.height = (image.height || image.offsetHeight) * window.devicePixelRatio;
+    canvas.width = (image.width || image.offsetWidth) * this.scaleX;
+    canvas.height = (image.height || image.offsetHeight) * this.scaleY;
     canvas.style.width = `${image.width || image.offsetWidth}px`
     canvas.style.height = `${image.height || image.offsetHeight}px`
     var ctx = canvas.getContext('2d') //取得画布的2d绘图上下文
@@ -386,15 +387,14 @@ export default class el2img {
       this.el = el // dom節點
       this.options = options
       this.quality = options.quality || 1 // 成像質量
-      this.imgWidth = options.width || this.el.offsetWidth // 圖片寬度
-      this.scale = 1 // 圖片縮放比例
+      this.scaleX = 1; // 圖片縮放比例
+      this.scaleY = 1; // 圖片縮放比例
+      this.imgWidth = this.el.offsetWidth;
+      this.imgHeight = this.el.offsetHeight;
       // 只傳寬度, 根據比例放大縮小
-      if (!options.height && options.width) {
-        this.scale = options.width / this.el.offsetWidth
-        this.imgHeight = this.scale * this.el.offsetHeight
-      } else {
-        this.imgHeight = options.height || this.el.offsetHeight // 圖片高度
-      }
+      this.scaleX = options.width ? options.width / this.el.offsetWidth : 1
+      this.scaleY = options.height ? options.height / this.el.offsetHeight : this.scaleX;
+      console.log(this.imgWidth, this.imgHeight, this.scaleX, this.scaleY)
       let styleElement = document.createElement('style');
       this.cloneElement(this.el, this.frag, 'clone', styleElement, async () => {
         this.frag.insertBefore(styleElement, this.frag.firstChild);
@@ -410,12 +410,12 @@ export default class el2img {
             this.loadImageList.push(svgSrc)
             await this.awaitImgLoad(true)
             let canvasData = await this.createCanvas(img, this.quality, this.canvasEl, true)
-            // 处理ios圖片渲染不出來的問題
-            if (/Safari/.test(navigator.userAgent)) {
+            if (/iPhone OS|Mac OS/.test(navigator.userAgent)) {
+              // 处理ios圖片渲染不出來的問題
               await this.awaitImgLoad()
+              canvasData = await this.createCanvas(img, this.quality, this.canvasEl, true)
             }
-            canvasData = await this.createCanvas(img, this.quality, this.canvasEl)
-            return resolve(canvasData)
+            return resolve(canvasData.toDataURL('image/png', this.quality))
         }
       })
     })
