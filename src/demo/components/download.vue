@@ -81,7 +81,7 @@ export default {
     },
     async clickDownLoad () {
         console.time('創建圖片1');
-        this.el2Image.draw(this.$refs.source, {type: 'png', width: 500}).then(res => {
+        this.el2Image.draw(this.$refs.source, {type: 'debug', width: 125}).then(res => {
           console.timeEnd('創建圖片1');
           if (typeof res === 'string') {
             let img = new Image();

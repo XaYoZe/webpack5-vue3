@@ -129,7 +129,7 @@ export default class el2img {
    * @param {HTMLElement} styleEl 樣式元素
    * @param {Boolean} isRoot 是否根目錄
    */
-  async cloneElement(srcEl, container, className = 'clone',  styleEl = document.createElement('style'), callback) {
+  async cloneElement(srcEl, container, className = 'clone',  styleEl = document.createElement('style'), callback, isRoot = true) {
     // 元素節點
     if (srcEl.nodeType == 1) {
       let cloneEl = this.translateElement(srcEl, () => this.totalStyleCount++, () => {
@@ -141,6 +141,12 @@ export default class el2img {
       });
       cloneEl.removeAttribute('style');
       cloneEl.setAttribute('class', className);
+      if (isRoot) {
+        this.frag.append(styleEl);
+        cloneEl.style.width = `${100 / this.scaleX}%`;
+        cloneEl.style.transform = `scale3d(${this.scaleX},${this.scaleY}, 1)`;
+        cloneEl.style.transformOrigin = `left top`;
+      }
       container.appendChild(cloneEl);
       this.totalStyleCount++;
       let style = this.supportComputedStyleMap ? srcEl.computedStyleMap() : window.getComputedStyle(srcEl)
@@ -154,7 +160,7 @@ export default class el2img {
       })
       if (srcEl.childNodes.length > 0) {
         for (let i = 0; i < srcEl.childNodes.length; i++) {
-          this.cloneElement(srcEl.childNodes[i], cloneEl, `${className}-${i + 1}`, styleEl, callback)
+          this.cloneElement(srcEl.childNodes[i], cloneEl, `${className}-${i + 1}`, styleEl, callback, false)
         }
       }
     }
@@ -173,7 +179,7 @@ export default class el2img {
     // 額外處理一些元素節點
     switch (srcEl.tagName) {
       case 'IMG': // 處理圖片標籤
-        addCont &&addCont()
+        addCont && addCont()
         this.getPicBase64(srcEl.src).then(res => {
           cloneEl.src = res;
           this.loadImageList.push(res)
@@ -184,24 +190,13 @@ export default class el2img {
         })
         break
       case 'CANVAS': // 處理canvas標籤
+      case 'VIDEO':
         cloneEl = document.createElement('img')
         Array.from(srcEl.attributes, (item) => {
           cloneEl.setAttribute(item.name, item.value)
         })
         try {
-          cloneEl.src = srcEl.toDataURL('image/png')
-        } catch (err) {
-          cloneEl.removeAttribute('src')
-          console.log('圖片轉換錯誤', err)
-        }
-        break
-      case 'video':
-        cloneEl = document.createElement('img')
-        Array.from(srcEl.attributes, (item) => {
-          cloneEl.setAttribute(item.name, item.value)
-        })
-        try {
-          cloneEl.src = this.createCanvas(node)
+          cloneEl.src = this.createCanvas(srcEl, {scale: [this.scaleX, this.scaleY]})
         } catch (err) {
           cloneEl.removeAttribute('src')
           console.log('視頻轉換錯誤', err)
@@ -314,10 +309,8 @@ export default class el2img {
     svgXml.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
     svgXml.setAttribute('width', this.imgWidth * this.scaleX)
     svgXml.setAttribute('height', this.imgHeight * this.scaleY)
-    foreignObject.setAttribute('width', this.imgWidth * this.scaleX)
-    foreignObject.setAttribute('height', this.imgHeight * this.scaleY);
-    foreignObject.style.transform = `scale(${this.scaleX},${this.scaleY})`;
-    foreignObject.style.transformOrigin = `left top`;
+    foreignObject.setAttribute('width', '100%')
+    foreignObject.setAttribute('height', '100%');
     foreignObject.append(this.frag)
     svgXml.append(foreignObject)
     this.svgEl = svgXml
@@ -343,19 +336,19 @@ export default class el2img {
    * 生成cavas
    * @param {*} image 圖片
    * @param {*} quality 圖片質量
-   * @param {*} cvs 使用已有的canvas對象
+   * @param {*} canvasEl 使用已有的canvas對象
    * @returns base64格式圖片
    */
-  async createCanvas(image, quality = 1, cvs, onlyDraw) {
-    var canvas = cvs || document.createElement('canvas') //准备空画布
-    canvas.width = (image.width || image.offsetWidth) * this.scaleX;
-    canvas.height = (image.height || image.offsetHeight) * this.scaleY;
-    canvas.style.width = `${image.width || image.offsetWidth}px`
-    canvas.style.height = `${image.height || image.offsetHeight}px`
-    var ctx = canvas.getContext('2d') //取得画布的2d绘图上下文
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.drawImage(image, 0, 0, canvas.width , canvas.height)
-    return onlyDraw ? canvas : canvas.toDataURL('image/png', quality)
+  createCanvas(image, { quality = 1, canvasEl = document.createElement('canvas'), onlyDraw = false, scale = [1,1]}) {
+    var canvas = canvasEl //准备空画布
+    canvas.width = image.width * (scale[0] > 1 ? scale[0] : 1);
+    canvas.height = image.height * (scale[1] > 1 ? scale[1] : 1);
+    canvas.style.width = `${image.offsetWidth}px`;
+    canvas.style.height = `${image.offsetHeight}px`;
+    var ctx = canvas.getContext('2d'); //取得画布的2d绘图上下文
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width , canvas.height);
+    return onlyDraw ? canvas : canvas.toDataURL('image/png', quality);
   }
   // 等待圖片加載結束
   awaitImgLoad(log) {
@@ -394,10 +387,8 @@ export default class el2img {
       // 只傳寬度, 根據比例放大縮小
       this.scaleX = options.width ? options.width / this.el.offsetWidth : 1
       this.scaleY = options.height ? options.height / this.el.offsetHeight : this.scaleX;
-      console.log(this.imgWidth, this.imgHeight, this.scaleX, this.scaleY)
       let styleElement = document.createElement('style');
       this.cloneElement(this.el, this.frag, 'clone', styleElement, async () => {
-        this.frag.insertBefore(styleElement, this.frag.firstChild);
         this.addFonts(styleElement)
         let svgSrc = this.createSvg();
         switch (options.type) {
@@ -409,13 +400,17 @@ export default class el2img {
             let img = await this.createImage(svgSrc);
             this.loadImageList.push(svgSrc)
             await this.awaitImgLoad(true)
-            let canvasData = await this.createCanvas(img, this.quality, this.canvasEl, true)
+            let canvasData = this.createCanvas(img, { quality: this.quality, canvasEl: this.canvasEl, onlyDraw: true})
             if (/iPhone OS|Mac OS/.test(navigator.userAgent)) {
               // 处理ios圖片渲染不出來的問題
               await this.awaitImgLoad()
-              canvasData = await this.createCanvas(img, this.quality, this.canvasEl, true)
+              canvasData = this.createCanvas(img, { quality: this.quality, canvasEl: this.canvasEl, onlyDraw: true})
             }
-            return resolve(canvasData.toDataURL('image/png', this.quality))
+            canvasData = canvasData.toDataURL('image/png', this.quality);
+            if (canvasData == 'data:,') {
+              reject('canvas分辨率超出瀏覽器限制')
+            }
+            return resolve(canvasData)
         }
       })
     })
