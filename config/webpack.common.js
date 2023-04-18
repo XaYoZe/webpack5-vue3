@@ -4,8 +4,8 @@ const fs = require('fs');
 const htmlWebpackPlugin = require('html-webpack-plugin'); // html模板插件
 const MiniCssExtractPlugin = require('mini-css-extract-plugin'); // css提取插件
 const CopyWebpackPlugin = require('copy-webpack-plugin'); // 文件複製插件
+const ServiceWorkerPlugin = require('./plugin/service-worker-plugin'); // 文件複製插件
 const { VueLoaderPlugin } = require('vue-loader'); // vue解析插件
-const ImageMinimizerPlugin = require('image-minimizer-webpack-plugin');
 const htmlAddScript = require('./plugin/htmlAddScript');
 
 module.exports = env => {
@@ -18,7 +18,9 @@ module.exports = env => {
   const outputPath = path.resolve(__dirname, `../dist/${proj}/`);
   const NODE_ENV = (env.NODE_ENV === 'local' || env.NODE_ENV === 'beta') ? 'development' : 'production';
   const timestamp = Date.now();
-  console.log('手機：', isPhone, '打包環境：', RUN_ENV)
+  global.BUILD_TIME = timestamp;
+  global.PROJ_NAME = proj;
+  console.log('移动端：', isPhone, '打包環境：', RUN_ENV)
   return {
     mode: NODE_ENV,
     devtool: !(RUN_ENV === 'prod') || 'cheap-module-source-map',
@@ -75,13 +77,15 @@ module.exports = env => {
             {
               loader: 'css-loader',
               options: {
-                url: (url, resourcePath) => { // 过滤链接路劲
-                  // resourcePath - css 文件的路径
-                  // 不处理 `/static` url 下面的文件
-                  if (/^\//.test(url) && url.includes("/static")) {
-                    return false;
+                url: {
+                  filter: (url, resourcePath) => { // 过滤链接路劲
+                    // resourcePath - css 文件的路径
+                    // 不处理 `/static` url 下面的文件
+                    if (/^\//.test(url) && url.includes("/static")) {
+                      return false;
+                    }
+                    return true;
                   }
-                  return true;
                 }
               }
             },
@@ -162,28 +166,6 @@ module.exports = env => {
     },
     optimization: {},
     plugins:[ // 插件
-    // 图片无损压缩
-      new ImageMinimizerPlugin({
-        minimizer: {
-          implementation: ImageMinimizerPlugin.squooshMinify,
-          options: {
-            encodeOptions: {
-              mozjpeg: {
-                // That setting might be close to lossless, but it’s not guaranteed
-                // https://github.com/GoogleChromeLabs/squoosh/issues/85
-                quality: 90, // jpg jpeg压缩比
-              },
-              webp: {
-                lossless: 1,
-              },
-              avif: {
-                // https://github.com/GoogleChromeLabs/squoosh/blob/dev/codecs/avif/enc/README.md
-                cqLevel: 0,
-              },
-            },
-          },
-        },
-      }),
       new MiniCssExtractPlugin({
         filename:
         RUN_ENV === 'local'
@@ -192,7 +174,7 @@ module.exports = env => {
         chunkFilename:
         RUN_ENV === 'local' ? '[id].css' : 'style/[id].[contenthash].css',
       }), // css提取插件
-      new VueLoaderPlugin(), // vue-loader 插件
+      new VueLoaderPlugin({}), // vue-loader 插件
       // copy custom static assets
       new CopyWebpackPlugin({ // 复制插件,将static复制到打包路径里
         patterns: [
@@ -221,6 +203,7 @@ module.exports = env => {
         PEOJ_NAME: JSON.stringify(proj), // 項目文件名
         RUN_ENV: JSON.stringify(RUN_ENV), // 運行環境
         'env.NODE_ENV': JSON.stringify(NODE_ENV), // 打包環境
+        BUILD_TIME: timestamp,
         __VUE_PROD_DEVTOOLS__: false, // 啟用vue生產模式調試工具devtools
         __VUE_OPTIONS_API__: true, // 啟用vue編譯器options的api
       }),
@@ -230,7 +213,8 @@ module.exports = env => {
       }, {
         tagName: 'script',
         content: `${fs.readFileSync(path.resolve(__dirname, 'clearCache.js'))}`
-      }])
+      }]),
+      new ServiceWorkerPlugin()
     ],
     resolve: {
       extensions: ['.js', '.json', 'scss', 'css', '.vue'], // 引入文件可以省略後綴
@@ -249,14 +233,14 @@ module.exports = env => {
       }
     },
     stats: {
-        all: false, // 默认值
-        timings: true,  // 添加时间信息
-        colors: true, // 颜色
-        assets: true, // 静态资源
-        assetsSort: 'name', // 排序
-        cachedAssets: true, //  添加关于缓存资源的信息
-        errors: true,
-        warnings: true
+        // all: false, // 默认值
+        // timings: true,  // 添加时间信息
+        // colors: true, // 颜色
+        // assets: true, // 静态资源
+        // assetsSort: 'name', // 排序
+        // cachedAssets: true, //  添加关于缓存资源的信息
+        // errors: true,
+        // warnings: true
     }
   }
 }

@@ -5,6 +5,7 @@ const path = require('path');
 const { ESBuildMinifyPlugin } = require('esbuild-loader');
 const htmlAddScript = require('./plugin/htmlAddScript');
 const CompressionPlugin = require('compression-webpack-plugin');
+const ImageMinimizerPlugin = require('image-minimizer-webpack-plugin');
 
 module.exports = env => {
   const proj = Object.keys(env).filter(key => /^:.*/.test(key))[0].slice(1);
@@ -50,6 +51,28 @@ module.exports = env => {
       ],
     },
     plugins: [
+    // 图片无损压缩
+      new ImageMinimizerPlugin({
+        minimizer: {
+          implementation: ImageMinimizerPlugin.squooshMinify,
+          options: {
+            encodeOptions: {
+              mozjpeg: {
+                // That setting might be close to lossless, but it’s not guaranteed
+                // https://github.com/GoogleChromeLabs/squoosh/issues/85
+                quality: 90, // jpg jpeg压缩比
+              },
+              webp: {
+                lossless: 1,
+              },
+              avif: {
+                // https://github.com/GoogleChromeLabs/squoosh/blob/dev/codecs/avif/enc/README.md
+                cqLevel: 0,
+              },
+            },
+          },
+        },
+      }),
       new htmlAddScript([
         'http://cdn.staticfile.org/vue/3.2.11/vue.global.min.js', // 添加vue库
       ]),

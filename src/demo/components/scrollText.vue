@@ -147,18 +147,18 @@ export default {
     display: flex;
     justify-content: center;
     align-items: center;
-    > ::v-deep * {
+    &:deep(*) {
       backface-visibility: hidden;
       position: absolute;
     }
     &.top, &.bottom {
-        > ::v-deep * {
+        &:deep(*) {
         //   width: 100%;
           transform: rotateX(#{$rotateX}) translateZ(#{$translateZ});
         }
     }
     &.left, &.right {
-        > ::v-deep * {
+        &:deep(*) {
            transform: rotateY(#{$rotateY}) translateZ(#{$translateZ});
         }
     }

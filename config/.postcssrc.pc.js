@@ -1,7 +1,7 @@
 let path = require('path')
 module.exports = {
   "plugins": [
-    path.resolve(__dirname, './plugin/postcss-webp.js'),
+    // path.resolve(__dirname, './plugin/postcss-webp.js'),
     {
         'postcss-preset-env': {
           // "browsers": "config/.browserslistrc",

@@ -29,10 +29,19 @@ function testPort (port, host) {
       // publicPath: '/',
       // contentBase: `/static`, // 項目路徑
       // contentBasePublicPath: '/static',
+      // bonjour: {  // 这个配置用于在启动时通过 ZeroConf 网络广播你的开发服务器。
+      //   type: 'http',
+      //   protocol: 'udp'
+      // },
+      client: {
+        logging: 'log', // 允许在浏览器中设置日志级别 'log' | 'info' | 'warn' | 'error' | 'none' | 'verbose'
+        overlay: { errors:true, warnings: false }, // 当出现编译错误或警告时，在浏览器中显示全屏覆盖。
+        progress: false,  // 在浏览器中以百分比显示编译进度。
+        reconnect: 20, // 告诉 dev-server 它应该尝试重新连接客户端的次数。当为 true 时，它将无限次尝试重新连接。
+      },
+      static: false,
       host, // 設為0.0.0.0才能在局域網內訪問
-      progress: true, // 進度打印在控制台
       port: await testPort(port, host), // 端口
-      clientLogLevel: 'warning', // 在控制台将显示消息, 可能的值有 none, error, warning 或者 info（默认值）。
       open: false, // 啟動後自動打開瀏覽器
       hot: true // 熱替換，自动使用webpack.HotModuleReplacementPlugin插件
     },

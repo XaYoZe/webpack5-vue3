@@ -125,7 +125,7 @@ export default {
       }
       margin-left: 20px;
       .content {
-        > ::v-deep img {
+        &:deep(img) {
           width: 250px;
           display: block;
         }
