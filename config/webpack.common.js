@@ -207,14 +207,11 @@ module.exports = env => {
         __VUE_PROD_DEVTOOLS__: false, // 啟用vue生產模式調試工具devtools
         __VUE_OPTIONS_API__: true, // 啟用vue編譯器options的api
       }),
-      new htmlAddScript([{ // 自己写的html文件添加标签功能
-        tagName: 'script',
-        content: `var timestamp = ${timestamp};`
-      }, {
-        tagName: 'script',
-        content: `${fs.readFileSync(path.resolve(__dirname, 'clearCache.js'))}`
-      }]),
-      new ServiceWorkerPlugin()
+      new ServiceWorkerPlugin({
+        buildTime: timestamp,
+        projName: proj,
+        outputName: 'sw.js'
+      })
     ],
     resolve: {
       extensions: ['.js', '.json', 'scss', 'css', '.vue'], // 引入文件可以省略後綴

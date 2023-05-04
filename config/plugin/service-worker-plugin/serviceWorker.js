@@ -79,12 +79,12 @@ function dataStatus(store) {
 }
 
 let urlParams = getUrlParams() // 链接参数
-let actName = urlParams['name'] // url的name
+let projName = urlParams['name'] // url的name
 let buildTime = urlParams['t'] // url的t
 let oldTimestamp = '' // 舊緩存時間
 let maxCacheSize = 10 // 最大缓存数量;
 let cacheFileList = $cacheFileList$ // 替换成构建输入文件列表
-let actCacheName = actName + '_' + buildTime
+let projCacheName = projName + '_' + buildTime
 let commonCacheName = 'common'
 
 // 不缓存的列表, 从后匹配pathname
@@ -99,15 +99,71 @@ function checkExcludeFile(url) {
 }
 
 // 缓存列表
-let includeList = createReg(['^https://localhost:8080'])
+let includeList = createReg(['^http://localhost:8080'])
 
 // 缓存公用资源
 let commonList = createReg([])
 
+/**
+ * 刪除指定項目緩存
+ * @param {string} tagetName 目標緩存名
+ * @param {function} filter 過濾條件
+ * @returns 
+ */
+function deleteProjCache (tagetName, filter) {
+  let projNameReg = new RegExp('^' + tagetName);
+  return caches.keys().then(async function (keyList) {
+    return Promise.all(keyList.map(cacheName =>{
+      if (projNameReg.test(cacheName) && (!filter || filter && filter(cacheName))) {
+        console.log(`删除項目缓存: %c${cacheName}\n%c缓存時間: %c${new Date(+cacheName.split('_')[1]).toLocaleString()}`, 'color: red', '', 'color: green')
+        return caches.delete(cacheName)
+      }
+    }))
+  })
+}
+
+// 刪除舊緩存
+function deleteOldCache () {
+  return deleteProjCache(projName, cacheName => {
+    console.log(cacheName, projCacheName, cacheName !== projCacheName)
+    return cacheName !== projCacheName
+  })
+}
+
+// 刪除不常用緩存
+async function deleteLowUseCache () {
+  // 是否超出限制
+  let projCacheList = await getStore('projCacheList')
+  let all = await dataStatus(projCacheList.getAll())
+  let sort = all.sort((a, b) => b.count - a.count)
+  let deleteSize = sort.length - maxCacheSize
+  let deleteList = []
+  // 超出限制处理删除低权重缓存
+  if (deleteSize > 0) {
+    console.log(`超出缓存限制: %c${maxCacheSize}\n%c%当前数量: %c${sort.length}`, 'color: red', '', 'color: green')
+    for (let i = 0; i < deleteSize; i++) {
+      if (sort[i].name === projName) {
+        deleteSize++
+        continue
+      }
+      console.log(`删除低活跃缓存: %c${cacheName}\n`, 'color: red')
+      deleteList.push(deleteProjCache(sort[i].name), dataStatus(projCacheList.delete(sort[i].name)))
+    }
+  }
+  return Promise.all(deleteList)
+}
+
 // 安装
 this.addEventListener('install', async function (event) {
-  console.log(`添加缓存: %c${actCacheName}\n%c缓存時間: %c${new Date(+buildTime).toLocaleString()}`, 'color: red', '', 'color: green', event)
-  event.waitUntil(caches.open(actCacheName).then((cache) => cache.addAll(cacheFileList).then(this.skipWaiting)))
+  console.log(`添加缓存: %c${projCacheName}\n%c缓存時間: %c${new Date(+buildTime).toLocaleString()}`, 'color: red', '', 'color: green', event)
+  let staticPathReg = /^static\/|\/static\//
+  event.waitUntil(Promise.all(cacheFileList.map(async cachePath => {
+    // 跳過靜態資源
+    if (staticPathReg.test(cachePath)) return
+    // 只添加已有緩存
+    let cacheStore =  await caches.open(projCacheName);
+    return caches.match(cachePath).then(resp=> resp && cacheStore.put(cachePath, resp))
+  })).then(this.skipWaiting))
 })
 
 // 收到信息
@@ -118,11 +174,22 @@ this.addEventListener('message', async function (event) {
   switch (messageData.type) {
     // 增加权重
     case 'load':
-      // event.log(`进入页面: %c${actCacheName}\n%c缓存時間: %c${new Date(+buildTime).toLocaleString()}`, 'color: red', '', 'color: green')
-      let result = (await dataStatus(projCacheList.get(actName))) || { name: actName, count: 0 }
-      result.count = result.count + 1
-      await dataStatus(projCacheList.put(result))
-      event.log(`权重%c+1\n%c当前: %c${result.count}`, 'color: red', '', 'color: green')
+      let curItem = null;
+      let curName = messageData.data || projName;
+      let all = await dataStatus(projCacheList.getAll())
+      for (let i = 0; i < all.length; i++) {
+        let item = all[i];
+        if (item.name == curName) {
+          curItem = item
+          item.count = Math.max(Math.min(item.count - 1, item.count), 0);
+        } else {
+          item.count++
+        }
+        await dataStatus(projCacheList.put(item))
+      }
+      if (!curItem) {
+        dataStatus(projCacheList.add({ name: curName, count: 0 }))
+      }
       break
     case 'create':
       for (let i = 0; i < 50; i++) {
@@ -132,20 +199,17 @@ this.addEventListener('message', async function (event) {
       }
       break
     case 'delete':
-      await Promise.all([caches.keys().then(async function (keyList) {
-        return Promise.all([keyList.map(function (key) {
-          let keys = key.split('_')
-          // 删除同一个活动名字的缓存
-          if (keys[0] === actName) {
-            return caches.delete(key)
-          }
-        })])
-      }), dataStatus(projCacheList.delete(actName))])
-      sourceClient.postMessage({type: 'delete'})
+      deleteLowUseCache()
       event.log(`删除%c缓存%c和%c数据`, 'color: red', '', 'color: green')
       break
+    case 'unregister':
+      await deleteProjCache(projName)
+      projCacheList = await getStore('projCacheList')
+      await dataStatus(projCacheList.delete(projName))
+      sourceClient.postMessage({type: 'deleteEnd'});
+      break
     default:
-      event.log(`接受信息: %c${actCacheName}\n%c缓存時間: %c${new Date(+buildTime).toLocaleString()}`, 'color: red', '', 'color: green')
+      event.log(`接受信息: %c${projCacheName}\n%c缓存時間: %c${new Date(+buildTime).toLocaleString()}`, 'color: red', '', 'color: green')
       break
   }
 })
@@ -155,16 +219,16 @@ this.addEventListener('activate', function (event) {
   // 刪除舊緩存
   event.waitUntil(
     caches.keys().then(async function (keyList) {
-      let cacheMap = {} // 活动名映射缓存名
-      // 清除旧活动缓存
+      let cacheMap = {} // 項目名映射缓存名
+      // 清除旧項目缓存
       await Promise.all(
         keyList.map(function (key) {
           let keys = key.split('_')
           cacheMap[keys[0]] = keys
-          // 删除同一个活动名字的其他缓存
-          if (keys[0] === actName) {
+          // 删除同一个項目名字的其他缓存
+          if (keys[0] === projName) {
             if (buildTime > keys[1]) {
-              console.log(`删除旧项目缓存: %c${actName}\n%c缓存時間: %c${new Date(+keys[1]).toLocaleString()}`, 'color: red', '', 'color: green')
+              console.log(`删除旧项目缓存: %c${projName}\n%c缓存時間: %c${new Date(+keys[1]).toLocaleString()}`, 'color: red', '', 'color: green')
               return caches.delete(key)
             }
           }
@@ -180,7 +244,7 @@ this.addEventListener('activate', function (event) {
         console.log(`超出缓存限制: %c${maxCacheSize}\n%当前数量: %c${sort.length}`, 'color: red', '', 'color: green')
         let deleteList = []
         for (let i = 0; i < deleteSize; i++) {
-          if (sort[i].name === actName) {
+          if (sort[i].name === projName) {
             deleteSize++
             continue
           }
@@ -208,7 +272,7 @@ this.addEventListener('fetch', function (event) {
         fetch(event.request)
           .then(function (response) {
             // 如果公用文件就放公用缓存
-            return caches.open(commonList(event.request.url) ? commonCacheName : actCacheName).then(function (cache) {
+            return caches.open(commonList(event.request.url) ? commonCacheName : projCacheName).then(function (cache) {
               cache.put(event.request, response.clone())
               return response
             })

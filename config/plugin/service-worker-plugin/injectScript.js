@@ -2,6 +2,7 @@
 // actName: 活动名
 // outputName: serviceworker文件名
 window.buildTime = $buildTime$
+window.isDev = $isDev$
 // url分割
 let urlReg = /^(https?:\/\/[^\/]*)([^?]*)([^#]*)(.*)/
 function splitUrl(url = location.href) {
@@ -77,16 +78,15 @@ getVersion((version) => {
 })
 
 if ('serviceWorker' in navigator) {
-  let swReg = null;
   function onMessage (event) {
     let message = event.data
     switch (message.type) {
       case 'log': // 打印
         console.log.apply(null, message.data)
         break
-      case 'delete': // 删除数据完成
+      case 'deleteEnd': // 删除数据完成
         navigator.serviceWorker.removeEventListener('message', onMessage)
-        swReg && swReg.unregister();
+        navigator.serviceWorker.getRegistration(location.href).then(res => res && res.unregister())
         break
     default:
         console.log(event)
@@ -95,17 +95,16 @@ if ('serviceWorker' in navigator) {
   }
   navigator.serviceWorker.addEventListener('message', onMessage);
   // 参数带有noSw取消注册sw
-  if (getUrlParams().noSw) {
+  if (getUrlParams().noSw || isDev) {
     navigator.serviceWorker.getRegistration(location.href).then(res => {
       if (res) { 
-        swReg = res;
-        res.active && res.active.postMessage({type: 'delete'})
+        res.active && res.active.postMessage({type: 'unregister'})
       }
     })
   } else {
     navigator.serviceWorker.register('$outputName$?t=$buildTime$&name=$projName$').then((reg) => {
       if (reg.installing || reg.active) {
-        (reg.installing || reg.active).postMessage({ type: 'load', data: { url: location.href } })
+        (reg.installing || reg.active).postMessage({ type: 'load' })
       }
     })
   }
