@@ -23,8 +23,6 @@ function Fontmin() {
     if (!(this instanceof Fontmin)) {
         return new Fontmin();
     }
-    console.log(11)
-
     // EventEmitter.call(this);
     this.streams = [];
 }
@@ -103,13 +101,14 @@ Fontmin.prototype.run = function (cb) {
  * @return {Stream} file stream
  * @api private
  */
-Fontmin.prototype.createStream = async function () {
+Fontmin.prototype.createStream = async function (text) {
     // this.streams.unshift();
+    let fontBuffer = await this.getFiles();
+    console.log(fontBuffer);
     Fontmin.glyph({ 
         text: '天地玄黄 宇宙洪荒',
         hinting: false         // keep ttf hint info (fpgm, prep, cvt). default = true
-    }, await this.getFiles())
-    console.log(this.streams);
+    }, fontBuffer)
 
     // if (this.streams.length === 1) {
     //     this.use(Fontmin.otf2ttf());

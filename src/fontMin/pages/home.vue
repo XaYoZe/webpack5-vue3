@@ -1,5 +1,8 @@
 <template>
-  <div class="home" @drop="drop" @dragover.prevent>
+  <div class="home">
+    <div class="drop_box" @drop="drop" @dragover.prevent>拖动TTF到这里</div>
+    <div class="text_show">{{ text }}</div>
+    <input type="text" v-model="text">
     <!-- 滚动数字 -->
     <!-- <div class="scroll-container">
         <div class="scroll-list">
@@ -14,29 +17,47 @@
   </div>
 </template>
 <script setup>
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import FontMin from "@js/minFont";
 let fontmin = new FontMin().src("/static/AaMaKeTi-2.ttf").dest("build/fonts"); // .src('/static/AaMaKeTi-2.ttf')
 onMounted(() => {
   console.log(fontmin.run());
 });
 
+let text = ref('你发萨法鸡蛋沙拉');
 // 拖動文件
 const drop = async (e) => {
   e.preventDefault();
   let file = e.dataTransfer.files[0];
-  console.log(file);
-  if (/.ttf$\//.test(file.type)) {
-    fontmin.src(await temp1.arrayBuffer())
+  if (/\.ttf$/.test(file.type || file.name)) {
+    let faceFace = new FontFace('font', await file.arrayBuffer());
+    await faceFace.load();
+    document.fonts.add(faceFace);
+    // fontmin.src()
   }
 };
 </script>
 
 <style lang="scss" scoped>
 .home {
+  box-sizing: border-box;
   width: 100vw;
   height: 100vh;
-  display: flex;
+  padding: 20px;
+  .drop_box {
+    width: 100%;
+    height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    border: 1px dotted #666;
+  }
+  .text_show {
+    width: 100%;
+    min-height: 50px;
+    font-family: 'load-font';
+  }
   .tabs {
     width: 200px;
     background: #eee8;
