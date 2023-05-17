@@ -137,9 +137,10 @@ Fontmin.prototype.createStream = async function () {
  * @api private
  */
 Fontmin.prototype.getFiles = async function () {
-    let stream = await fetch(this._src[0]).then(res=> res.arrayBuffer());
-    console.log(stream);
-    return stream
+  if (this._src[0].constructor === ArrayBuffer) {
+    return this._src[0]
+  }
+  return await fetch(this._src[0]).then(res=> res.arrayBuffer());
 };
 
 /**
