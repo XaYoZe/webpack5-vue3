@@ -3,7 +3,7 @@
  */
 const HtmlWebpackPlugin = require("html-webpack-plugin"),
   webpack = require("webpack"),
-  uglify = require("uglify-es"),
+  uglify = require("uglify-js"),
   fs = require("fs"),
   path = require("path");
 

@@ -35,6 +35,9 @@ module.exports = env => {
     performance: {
       hints: 'warning', 
       maxAssetSize: 5 * 1024 * 1024, // 整数类型（以字节为单位）控制webpack单个资产超出限制时发出性能提示
+      assetFilter: (path) => {
+        return !/^static/.test(path)
+      },
       maxEntrypointSize: 5000000 // 整数类型（以字节为单位） 控制webpack最大入口点文件大小超出限制时发出性能提示
     },
     module: {
@@ -230,14 +233,14 @@ module.exports = env => {
       }
     },
     stats: {
-        // all: false, // 默认值
-        // timings: true,  // 添加时间信息
-        // colors: true, // 颜色
-        // assets: true, // 静态资源
-        // assetsSort: 'name', // 排序
-        // cachedAssets: true, //  添加关于缓存资源的信息
-        // errors: true,
-        // warnings: true
+        all: false, // 默认值
+        timings: true,  // 添加时间信息
+        colors: true, // 颜色
+        assets: true, // 静态资源
+        assetsSort: 'name', // 排序
+        cachedAssets: true, //  添加关于缓存资源的信息
+        errors: true,
+        warnings: true
     }
   }
 }

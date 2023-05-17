@@ -46,7 +46,7 @@
     "sass-resources-loader": "^2.2.4",
     "style-loader": "^3.3.2",
     "thread-loader": "^3.0.3",
-    "uglify-es": "^3.3.9",
+    "uglify-js": "^3.17.4",
     "vue-loader": "^17.0.1",
     "webpack": "^5.79.0",
     "webpack-cli": "^5.0.1",
