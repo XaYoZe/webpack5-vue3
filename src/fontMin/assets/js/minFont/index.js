@@ -50,22 +50,6 @@ Fontmin.prototype.src = function (file) {
 };
 
 /**
- * Get or set the destination folder
- *
- * @param {string} dir folder to written
- * @return {Object} fontmin
- * @api public
- */
-Fontmin.prototype.dest = function (dir) {
-    if (!arguments.length) {
-        return this._dest;
-    }
-
-    this._dest = arguments;
-    return this;
-};
-
-/**
  * Add a plugin to the middleware stack
  *
  * @param {Function} plugin plugin
@@ -80,18 +64,11 @@ Fontmin.prototype.use = function (plugin) {
 /**
  * Optimize files
  *
- * @param {Function} cb callback
  * @return {Stream} file stream
  * @api public
  */
-Fontmin.prototype.run = function (cb) {
-    cb = cb || function () {};
-
-    var stream = this.createStream();
-
-    // stream.on('error', cb);
-    // stream.pipe(concat(cb.bind(null, null)));
-
+Fontmin.prototype.run = function (text) {
+    var stream = this.createStream(text);
     return stream;
 };
 
@@ -105,10 +82,11 @@ Fontmin.prototype.createStream = async function (text) {
     // this.streams.unshift();
     let fontBuffer = await this.getFiles();
     console.log(fontBuffer);
-    Fontmin.glyph({ 
-        text: '天地玄黄 宇宙洪荒',
+    let min = Fontmin.glyph({ 
+        text,
         hinting: false         // keep ttf hint info (fpgm, prep, cvt). default = true
     }, fontBuffer)
+    return min
 
     // if (this.streams.length === 1) {
     //     this.use(Fontmin.otf2ttf());
@@ -118,15 +96,7 @@ Fontmin.prototype.createStream = async function (text) {
     //     this.use(Fontmin.ttf2svg());
     //     this.use(Fontmin.css());
     // }
-
-    // if (this.dest()) {
-    //     this.streams.push(
-    //         // // vfs.dest.apply(vfs, this.dest())
-    //     );
-    // }
-
     // return combine(this.streams);
-    return this.streams
 };
 
 /**

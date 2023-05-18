@@ -70,21 +70,6 @@ function getPureText(str) {
 }
 
 /**
- * getUniqText
- *
- * @deprecated since version 0.9.9
- *
- * @param  {string} str target text
- * @return {string}     uniq text
- */
-function getUniqText(str) {
-    return _.uniq(
-        str.split('')
-    ).join('');
-}
-
-
-/**
  * basic chars
  *
  * "!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}"
@@ -131,6 +116,5 @@ function string2unicodes(str) {
 exports.getFontFolder = getFontFolder;
 exports.getFonts = getFonts;
 exports.getPureText = getPureText;
-exports.getUniqText = getUniqText;
 exports.getSubsetText = getSubsetText;
 exports.string2unicodes = string2unicodes;

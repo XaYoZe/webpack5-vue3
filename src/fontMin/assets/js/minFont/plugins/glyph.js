@@ -113,15 +113,12 @@ function minifyTtf(buffer, opts) {
 
   var ttfobj = buffer;
 
-  console.log(buffer.constructor);
   if (buffer.constructor === ArrayBuffer) {
     ttfobj = new TTFReader(opts).read(buffer);
   }
   var miniObj = minifyFontObject(ttfobj, opts.subset, opts.use);
   // console.log(new TTFWriter(opts).write(miniObj))
-  console.log(opts.subset, miniObj);
   var ttfBuffer = new TTFWriter(opts).write(miniObj);
-  console.log("ttfBuffer", ttfBuffer);
   return {
     object: miniObj,
     buffer: ttfBuffer,
@@ -158,6 +155,7 @@ module.exports = function (opts, buffer) {
     contents = miniTtf.buffer;
     ttfObject = miniTtf.object;
     console.log(contents, ttfObject);
+    return miniTtf
   } catch (err) {
     console.log(err);
   }
