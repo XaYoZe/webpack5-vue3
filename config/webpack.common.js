@@ -42,6 +42,12 @@ module.exports = env => {
     },
     module: {
       rules: [{
+          test: /\.(wasm)$/i, // 解析图片
+          type: "asset",
+          generator: {
+            filename: 'assets/[name][ext]', // 输出资源路径
+          }
+      },{
           test: /\.(png|svg|jpe?g|gif)$/i, // 解析图片
           // include: /to64\/*/,
           // exclude: /[^\/]static/,

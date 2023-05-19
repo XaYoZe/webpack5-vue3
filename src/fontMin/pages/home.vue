@@ -26,8 +26,10 @@
 import { onMounted, ref, watch, nextTick } from "vue";
 import Textarea from '@cpts/Textarea'
 import FontMin from "@js/minFont";
+import FontMin1 from "@js/fontMin.js";
 
 let fontmin = new FontMin();
+
 
 let extractText = ref('.ttf字体是Windows和Mac的最常见的字体，是一种RAW格式，因此他不为网站优化,支持这种字体的浏览器有【IE9+,Firefox3.5+,Chrome4+,Safari3+,Opera10+,iOS Mobile Safari4.2+】；');
 
@@ -57,8 +59,10 @@ const createTTF = (fontName) => {
   testText.value = extractText.value;
   fontmin.src(curFile).run(extractText.value).then(res => {
     console.log(res, 132456)
-    fontInfo.value = res.object;
-    showFont(res.buffer, fontName);
+    if (res) {
+      fontInfo.value = res.object;
+      showFont(res.buffer, fontName);
+    }
   })
 }
 
@@ -66,14 +70,16 @@ const createTTF = (fontName) => {
 const drop = async (e) => {
   e.preventDefault();
   let file = e.dataTransfer.files[0];
-  if (/\.ttf$/.test(file.type || file.name)) {
+  // if (/\.ttf$/.test(file.type || file.name)) {
      curFile = await file.arrayBuffer();
      createTTF('font_draw')
     // fontmin.src()
-  }
+  // }
 };
 
 onMounted(async () => {});
+let fontMin1 = new FontMin1();
+fontMin1.src('/static/AaMaKeTi.woff2').min(extractText.value);
 
 </script>
 

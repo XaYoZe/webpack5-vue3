@@ -139,13 +139,13 @@ function minifyTtf(buffer, opts) {
  */
 module.exports = function (opts, buffer) {
   let u8a = new Uint8Array(buffer);
-  opts = _.extend({ hinting: true, trim: true }, opts);
+  opts = _.extend({ hinting: true, trim: false }, opts);
   // prepare subset
   var subsetText = util.getSubsetText(opts);
   opts.subset = util.string2unicodes(subsetText);
   // check ttf
   if (!isTtf(u8a)) {
-    console.log("!isTff", buffer);
+    console.log("!isTff");
     return;
   }
 

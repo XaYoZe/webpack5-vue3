@@ -23,7 +23,6 @@ function Fontmin() {
     if (!(this instanceof Fontmin)) {
         return new Fontmin();
     }
-    // EventEmitter.call(this);
     this.streams = [];
 }
 
