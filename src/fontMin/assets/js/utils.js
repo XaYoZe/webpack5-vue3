@@ -5,12 +5,9 @@ export function checkFontBuffer (arr, buf) {
     let info = arr[i];
     let starIndex = info.index || 0;
     if (info.buffer.every((num, index) => {
-      console.log(i, index, num, buf[starIndex + index]);
       return num === buf[starIndex + index]
     })) {
-      console.log(info);
       if (info.subBuffer) {
-        console.log(checkFontBuffer(info.subBuffer, buf))
         return checkFontBuffer(info.subBuffer, buf)
       }
       return true;
@@ -75,55 +72,16 @@ export function checkFontFileType (buf) {
   for (let i = 0; i < fontTypeInfo.length; i++) {
     let info = fontTypeInfo[i];
     if (checkFontBuffer(info.checkBuffer, buf)) {
-      console.log(i)
       return info
     }
   }
-	// if (checkBuffer([0x77, 0x4F, 0x46, 0x46, 0x00, 0x01, 0x00, 0x00], buf) || checkBuffer([0x77, 0x4F, 0x46, 0x46, 0x4F, 0x54, 0x54, 0x4F], buf)) {
-	// 	return {
-	// 		ext: 'woff',
-	// 		mime: 'application/font-woff'
-	// 	};
-	// }
-
-	// if (checkBuffer([0x77, 0x4F, 0x46, 0x32, 0x00, 0x01, 0x00, 0x00], buf) || checkBuffer([0x77, 0x4F, 0x46, 0x32, 0x4F, 0x54, 0x54, 0x4F], buf)) {
-	// 	return {
-	// 		ext: 'woff2',
-	// 		mime: 'application/font-woff'
-	// 	};
-  // }
-
-	// if (
-  //   checkBuffer([0x4C, 0x50], buf, 34) &&
-	// 	(
-  //     checkBuffer([0x00, 0x00, 0x01], buf, 8) || 
-  //     checkBuffer([0x01, 0x00, 0x02], buf, 8) || 
-  //     checkBuffer([0x02, 0x00, 0x02], buf, 8)
-	// 	)) 
-  // {
-  // return {
-	// 		ext: 'eot',
-	// 		mime: 'application/octet-stream'
-	// 	};
-	// }
-
-	// if (checkBuffer([0x00, 0x01, 0x00, 0x00, 0x00], buf)) {
-	// 	return {
-	// 		ext: 'ttf',
-	// 		mime: 'application/font-sfnt'
-	// 	};
-	// }
-
-	// if (checkBuffer([0x4F, 0x54, 0x54, 0x4F, 0x00], buf)) {
-	// 	return {
-	// 		ext: 'otf',
-	// 		mime: 'application/font-sfnt'
-	// 	};
-	// }
 }
 
 // 字符串轉Unicode
 export function string2UCode (text) {
+  if (Array.isArray(text)) {
+    return text
+  }
   let chatCode = [];
   for (let i = 0; i < text.length; i++) {
     chatCode.push(text.charCodeAt(i))
