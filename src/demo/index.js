@@ -15,6 +15,14 @@ if (!window.eruda && RUN_ENV === 'local' && location.href.indexOf('debug') !== -
 
 let app = createApp(index); 
 
+// 自動註冊組件
+// let webpackContext = require.context('@cpts', true, /.vue$/, 'sync')
+
+// webpackContext.keys().forEach(item => {
+  // let cpt = webpackContext(item);
+  // app.component(cpt.default.name || item.replace(/(.*?\/)+(.*)\.vue/, '$2'), cpt.default)
+// })
+
 app.use(router); // 使用路由管理
 
 app.mount('#app'); // 只能在use之后使用

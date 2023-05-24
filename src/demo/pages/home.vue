@@ -7,28 +7,36 @@
         </div>
         <div class="scroll-ctrl"><input type="text" v-model.number="addNum"><button @click="changeNum">添加</button></div>
     </div> -->
-    <!-- <div class="tabs">
+    <div class="tabs">
         <div class="tab" v-for="(tab) in tabs" :key="tab.name" @click="tabName = tab.name">{{ tab.title }}</div>
-    </div> -->
+    </div>
     <component :is="tabName"></component>
   </div>
 </template>
 <script>
-import calendar from '@cpts/calendar';
-import scrollNum from '@cpts/scrollNum';
-import download from '@cpts/download';
+// import calendar from '@cpts/calendar';
+// import scrollNum from '@cpts/scrollNum';
+// import dom2img from '@cpts/dom2img';
+// import giftScroll from '@cpts/giftScroll';
+import { defineAsyncComponent } from 'vue';
 
 export default {
-  components: {calendar, scrollNum, download},
+  components: {
+    calendar:defineAsyncComponent(() => import('@cpts/calendar')),
+    scrollNum:defineAsyncComponent(() => import('@cpts/scrollNum')),
+    dom2img:defineAsyncComponent(() => import('@cpts/dom2img')),
+    giftScroll:defineAsyncComponent(() => import('@cpts/giftScroll')),
+  },
   data () {
     return {
         date: new Date(),
         num: 1, // 显示的数字
         addNum: 111,
-        tabName: 'download',
+        tabName: 'giftScroll',
         tabs: [
+            {name: 'giftScroll', title: '轉盤'},
             {name: 'calendar', title: '日曆'},
-            {name: 'download', title: '下載'}
+            {name: 'dom2img', title: '下載'}
         ],
         scrollConfig: { // 滚轮配置
             fontSize: 20,

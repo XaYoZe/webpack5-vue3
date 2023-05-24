@@ -1,6 +1,7 @@
 <!-- 日历组件 -->
 <template>
     <div class="calendar">
+        <div class="year">{{ curYear }}</div>
         <div class="month">
             <div class="month-prev" @click="changeMonth('-')"> &lt; </div>
             <div class="month-text">{{ monthList[curMonth - 1 ]}}</div>
@@ -28,15 +29,17 @@ export default {
     data() {
         return {
             monthList: ['Jan', 'Feb', 'Mar', 'Ari', 'May', 'Jun', 'Jul', 'Aut', 'Sep', 'Oct', 'Nov', 'Dec'],
+            monthList: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
             weekList: ['Mon', 'Tue', 'Wed', 'Thu', 'Fir', 'Sat', 'Sun'],
+            weekList: ['一', '二', '三', '四', '五', '六', '日'],
             dateCache: {}, // 缓存时间对象
             show: true,
             curYear: 2022, // 单签展示的年份
             curMonth: 3, // 当前展示的月份
             startTime: 0, // 开始时间
             endTime: 0, // 结束时间
-            signInList: [1646323300, 1646409600, 1646582400, 1646668800, 1651539200], // 已签到列表
-            unSignInList: [1646928000, 1646928000, 1646623300], // 未签到日期
+            signInList: [], // 已签到列表
+            unSignInList: [], // 未签到日期
         };
     },
     computed: {
@@ -83,8 +86,10 @@ export default {
         }
     },
     mounted() {
-        this.curMonth = new Date().getMonth() + 1;
-        this.signInList.push(parseInt(Date.now() / 1000));
+        let date = new Date()
+        this.curYear = date.getFullYear();
+        this.curMonth = date.getMonth() + 1;
+        this.signInList.push(parseInt(date.getTime() / 1000));
         console.log(this.signInList);
     },
     methods: {
@@ -145,6 +150,12 @@ export default {
         background: #197e7a;
         margin: 20px auto 0;
         padding: 10px;
+        .year {
+          text-align: center;
+          font-size: 36px;
+          font-weight: bold;
+          color: #58f1aa;
+        }
         .month {
             @extend .flexCenter;
             margin-bottom: 20px;
