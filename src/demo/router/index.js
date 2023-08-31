@@ -1,13 +1,19 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-// import index from '@src/pages/home'
-let home = () => import('@src/pages/home.vue');
-let keyBoard = () => import('@src/pages/keyBoard.vue')
+
+// 自动祖册路由，会全部打包到index.js
+let routeList = [];
+let webpackContext = require.context('@pages', false, /.vue$/, )
+webpackContext.keys().forEach(item => {
+  // let cpt = webpackContext(item);
+  let routeName = item.replace(/(.*?\/)+(.*)\.vue/, '$2');
+  routeList.push({path: `/${routeName}`, name: routeName, component: async () => webpackContext(item)});
+})
+
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    { path: '/index', name: 'home', component: home},
-    { path: '/keyBoard', name: 'keyBoard', component: keyBoard},
-    { path: '/:path(.*)*', name: 'not-found', component:  home} // 默认路由
+    ...routeList,
+    { path: '/:path(.*)*', name: 'not-found', redirect: routeList[0]} // 默认路由
   ]
 })
 export default router;

@@ -19,22 +19,22 @@
 // import dom2img from '@cpts/dom2img';
 // import giftScroll from '@cpts/giftScroll';
 import { defineAsyncComponent } from 'vue';
-
 export default {
+  name: 'index',
   components: {
-    calendar:defineAsyncComponent(() => import('@cpts/calendar')),
-    scrollNum:defineAsyncComponent(() => import('@cpts/scrollNum')),
-    dom2img:defineAsyncComponent(() => import('@cpts/dom2img')),
-    giftScroll:defineAsyncComponent(() => import('@cpts/giftScroll')),
+    // calendar:defineAsyncComponent(() => import('@cpts/calendar')),
+    // scrollNum:defineAsyncComponent(() => import('@cpts/scrollNum')),
+    // dom2img:defineAsyncComponent(() => import('@cpts/dom2img')),
+    // listScroll:defineAsyncComponent(() => import('@cpts/listScroll')),
   },
   data () {
     return {
         date: new Date(),
         num: 1, // 显示的数字
         addNum: 111,
-        tabName: 'giftScroll',
+        tabName: 'listScroll',
         tabs: [
-            {name: 'giftScroll', title: '轉盤'},
+            {name: 'listScroll', title: '轉盤'},
             {name: 'calendar', title: '日曆'},
             {name: 'dom2img', title: '下載'}
         ],
@@ -72,21 +72,10 @@ export default {
             color: #fff;
         }
     }
-    .scroll-container {
-        .scroll-list {
-            display: flex;
-            margin: 100px auto 0;
-            border: 1px solid #eee;
-            width: max-content;
-            overflow: hidden;
-        }
-        .scroll-ctrl {
-            margin: 50px auto 0;
-            width: max-content;
-            input {
-                margin-right: 10px;
-            }
-        }
+    .scroll_item {
+      width: 50px;
+      height: 50px;
+      background: #ace;
 
     }
 }

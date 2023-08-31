@@ -1,7 +1,7 @@
 // 使用
-// this.el2Image = new el2img();
+// this.el2Image = new El2img();
 // await this.el2Image.draw({el: this.$refs.source });
-export default class el2img {
+export default class El2img {
   // 文案片段
   frag = document.createDocumentFragment()
   // 請求緩存
@@ -27,6 +27,7 @@ export default class el2img {
   supportComputedStyleMap = Boolean(document.body.computedStyleMap) // 是否支持computedStyleMap方法
   totalStyleCount = 0;
   loadStyleCount = 0;
+  fetchOption = {};
   constructor() {
     this.initDefaultStyle()
     this.getPageFonts();
@@ -97,7 +98,7 @@ export default class el2img {
       return Promise.resolve(this.cache[src])
     }
     // ,{mode: 'cors', cache: 'reload'}
-    return fetch(src).then(async res => {
+    return fetch(src, this.fetchOption).then(async res => {
       let base64 = await this.blobToBase64(await res.blob());
       this.cache[src] = base64;
       return  Promise.resolve(base64)
@@ -375,10 +376,11 @@ export default class el2img {
    * @param {Object} options {quality: 輸出圖片質量, width: 輸出圖片寬度, height: 輸出圖片高度}
    * @returns base64格式png圖片
    */
-  async draw(el, options) {
+  async draw(el, options = {}) {
     return new Promise((resolve, reject) => {
       this.el = el // dom節點
       this.options = options
+      this.fetchOption = options.fetchOption
       this.quality = options.quality || 1 // 成像質量
       this.scaleX = 1; // 圖片縮放比例
       this.scaleY = 1; // 圖片縮放比例
