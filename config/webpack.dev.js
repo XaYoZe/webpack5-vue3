@@ -11,14 +11,16 @@ function testPort (port, host) {
       res(port); // 繼續執行
     });
     server.on('error', async (err) => { // 開啟服務失敗
-      console.log(err, '1111111')
       if (err.code === 'EADDRINUSE') { // 端口已经被使用
         res(await testPort(port + 1, host));
       }
     })
   })
 }
-  module.exports = async env => {
+console.log(this);
+
+  module.exports = async function( env) {
+  console.log(this);
   let port = 8080; // 端口
   let host = '0.0.0.0'; // 域名
   return webpackMerge.merge(common(env), {
@@ -34,7 +36,7 @@ function testPort (port, host) {
       //   protocol: 'udp'
       // },
       client: {
-        logging: 'log', // 允许在浏览器中设置日志级别 'log' | 'info' | 'warn' | 'error' | 'none' | 'verbose'
+        logging: 'verbose', // 允许在浏览器中设置日志级别 'log' | 'info' | 'warn' | 'error' | 'none' | 'verbose'
         overlay: { errors:true, warnings: false }, // 当出现编译错误或警告时，在浏览器中显示全屏覆盖。
         progress: false,  // 在浏览器中以百分比显示编译进度。
         reconnect: 20, // 告诉 dev-server 它应该尝试重新连接客户端的次数。当为 true 时，它将无限次尝试重新连接。

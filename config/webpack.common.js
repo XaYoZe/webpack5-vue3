@@ -22,6 +22,11 @@ module.exports = env => {
   global.PROJ_NAME = proj;
   console.log('移动端：', isPhone, '打包環境：', RUN_ENV)
   return {
+    cache: { // 缓存生成的 webpack 模块和 chunk，来改善构建速度
+      type: 'filesystem', //
+      name: proj, // 缓存名
+      cacheDirectory: path.resolve(`node_modules/.cache/webpack/`), // 缓存文件夹路径
+    }, 
     mode: NODE_ENV,
     devtool: !(RUN_ENV === 'prod') || 'cheap-module-source-map',
     entry: {
@@ -36,9 +41,9 @@ module.exports = env => {
       hints: 'warning', 
       maxAssetSize: 5 * 1024 * 1024, // 整数类型（以字节为单位）控制webpack单个资产超出限制时发出性能提示
       assetFilter: (path) => {
-        return !/^static/.test(path)
+        return !/^static|/.test(path) || /.js$/.test(path)
       },
-      maxEntrypointSize: 5000000 // 整数类型（以字节为单位） 控制webpack最大入口点文件大小超出限制时发出性能提示
+      maxEntrypointSize: 2 * 1024 * 1024 // 整数类型（以字节为单位） 控制webpack最大入口点文件大小超出限制时发出性能提示
     },
     module: {
       rules: [{
@@ -138,37 +143,38 @@ module.exports = env => {
             }
           }]
         }, {
-          test: /\.m?js$/, // js文件解析
+          test: /\.[jt]sx?$/, // js文件解析
           exclude: /node_modules/, // 排除符合条件的模块
           use: [{
           // 开启多进程打包。 
           // 进程启动大概为600ms，进程通信也有开销。
           // 只有工作消耗时间比较长，才需要多进程打包
-          //   loader: "thread-loader",
-          //   options: {
-          //     workers: 2,
-          //     workerParallelJobs: 50,
-          //     workerNodeArgs: ['--max-old-space-size=1024'],
-          //     poolRespawn: false,
-          //     poolTimeout: 2000,
-          //     poolParallelJobs: 50,
-          //     name: "my-pool"
-          //   }
+            // loader: "thread-loader",
+            // options: {
+            //   workers: 2,
+            //   workerParallelJobs: 50,
+            //   workerNodeArgs: ['--max-old-space-size=1024'],
+            //   poolRespawn: false,
+            //   poolTimeout: 2000,
+            //   poolParallelJobs: 50,
+            //   name: "my-pool"
+            // }
           // }, {
             // loader: 'babel-loader',
             // options: {
             //   cacheDirectory: true, // 开启缓存
-            //   configFile: path.resolve(__dirname,'./.babelrc') // 修改配置文件位置， 默认根目录
+            //   configFile: path.resolve(__dirname,'./.babelrc'), // 修改配置文件位置， 默认根目录
+            //   plugins: ['@babel/plugin-transform-typescript']
             // }
           // }, {
-            loader: 'esbuild-loader',
-            options: {
-              loader: 'js',  // Remove this if you're not using JSX
-              target: [
-                'es2015',
-              ],  // Syntax to compile to (see options below for possible values)
-              sourcemap: NODE_ENV !== 'prod'
-            }
+          loader: 'esbuild-loader',
+          options: {
+            loader: 'ts',  // Remove this if you're not using JSX
+            target: [
+              'es2015',
+            ],  // Syntax to compile to (see options below for possible values)
+            sourcemap: NODE_ENV !== 'prod'
+          }
           }]
         }
       ]
@@ -208,7 +214,7 @@ module.exports = env => {
         template: `${entryPath}/index.html`, // 模板文件位置
       }),
       new webpack.DefinePlugin({ // 編譯時定義全局變量
-        IS_PHONE: isPhone, // 移動端頁面
+        IS_PHONE: isPhone || false, // 移動端頁面
         PEOJ_NAME: JSON.stringify(proj), // 項目文件名
         RUN_ENV: JSON.stringify(RUN_ENV), // 運行環境
         'env.NODE_ENV': JSON.stringify(NODE_ENV), // 打包環境
@@ -236,6 +242,7 @@ module.exports = env => {
         '@js': path.join(entryPath, './assets/js'),
         '@store': path.join(entryPath, './store'),
         '@route': path.join(entryPath, './route'),
+        '@pages': path.join(entryPath, './pages'),
       }
     },
     stats: {
@@ -246,7 +253,9 @@ module.exports = env => {
         assetsSort: 'name', // 排序
         cachedAssets: true, //  添加关于缓存资源的信息
         errors: true,
-        warnings: true
+        warnings: true,
+        builtAt: true,
+        runtimeModules: false
     }
   }
 }
