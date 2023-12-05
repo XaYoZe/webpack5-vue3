@@ -36,7 +36,7 @@ console.log(this);
       //   protocol: 'udp'
       // },
       client: {
-        logging: 'verbose', // 允许在浏览器中设置日志级别 'log' | 'info' | 'warn' | 'error' | 'none' | 'verbose'
+        logging: 'none', // 允许在浏览器中设置日志级别 'log' | 'info' | 'warn' | 'error' | 'none' | 'verbose'
         overlay: { errors:true, warnings: false }, // 当出现编译错误或警告时，在浏览器中显示全屏覆盖。
         progress: false,  // 在浏览器中以百分比显示编译进度。
         reconnect: 20, // 告诉 dev-server 它应该尝试重新连接客户端的次数。当为 true 时，它将无限次尝试重新连接。

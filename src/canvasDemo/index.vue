@@ -3,12 +3,14 @@
     <!-- <catchFishCvs></catchFishCvs> -->
     <textStroke></textStroke>
     <vap></vap>
+    <vapGl></vapGl>
   </div>
 </template>
 <script>
 import catchFishCvs from './components/catchFishCvs';
 import textStroke from './components/textStroke';
 import vap from './components/vap';
+import vapGl from './components/vapGl';
 
 export default {
   data () {
@@ -18,7 +20,8 @@ export default {
   components: {
     catchFishCvs,
     textStroke,
-    vap
+    vap,
+    vapGl
   },
   computed: {
   },

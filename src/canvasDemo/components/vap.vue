@@ -1,7 +1,7 @@
 <template>
   <div ref="dom">
     <div @click="play">播放</div>
-    <div>{{fps}}</div>
+    <!-- <div>{{fps}}</div> -->
     <canvas class="result" ref="cvsResult"></canvas>
     <video :src="mp4" ref="video" crossorigin="anonymous" loop playsinline autoplay muted webkit-playsinline preload="auto"></video>
     <!-- <video crossorigin="anonymous" preload="auto" playsinline="" webkit-playsinline="" src="/static/media/hero_0.4dea9ed.mp4" style="display: none;"></video> -->
