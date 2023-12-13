@@ -2,7 +2,7 @@
   <div class="home">
     <!-- <catchFishCvs></catchFishCvs> -->
     <textStroke></textStroke>
-    <vap></vap>
+    <!-- <vap></vap> -->
     <vapGl></vapGl>
   </div>
 </template>
