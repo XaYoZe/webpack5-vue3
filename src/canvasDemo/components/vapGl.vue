@@ -1,10 +1,10 @@
 <template>
   <div ref="dom">
-    <canvas class="result" width="800" ref="cvsResult"></canvas>
+    <canvas class="result" width="400" height="400" ref="cvsResult"></canvas>
     <br />
-    <img src="@img/1.png" ref="img1">
-    <!-- <img src="../static/mp4.png" ref="img1"> -->
-    <img src="@img/2.png" ref="img2">
+    <!-- <img src="@img/v2.png" ref="img1"> -->
+    <img src="../static/mp4.png" ref="img1">
+    <img src="@img/v1.png" ref="img2">
     <!-- <video
       :src="mp4"
       ref="video"
@@ -35,7 +35,16 @@ let img1 = ref(null);
 let img2 = ref(null);
 onMounted(() => {
   let vapGl = new VapGl({ el: cvsResult.value, config: json });
-  vapGl.drawImage(img1.value, img2.value);
+  Promise.all([img1.value, img2.value].map(item => {
+    return new Promise((resolve) => {
+      item.onload = () => {
+        resolve(true)
+      }
+    })
+  })).then(res => {
+    vapGl.drawImage(img1.value, img2.value);
+    console.log('加載圖片完成')
+  })
 });
 </script>
 <style lang="scss" scoped>
@@ -43,8 +52,8 @@ video {
   // display: none;
 }
 canvas {
-  width: 800px;
-  height: 500px;
+  width: 400px;
+  height: 400px;
   background: #eee6;
 }
 </style>
