@@ -57,7 +57,7 @@ void main () {
   vec4 alpha = texture2D(u_image_rgb, v_alpha_cood);
 
   // 在纹理上寻找对应颜色值
-  gl_FragColor = vec4(rgb.rgb, alpha.r);
+  gl_FragColor = vec4(rgb.rgb, alpha.g);
 }`;
 
 class VapGl {
@@ -73,7 +73,13 @@ class VapGl {
     this.webgl = this.canvas.getContext('webgl', {
       alpha: true,
     }) as WebGLRenderingContext;
-
+    this.webgl.blendFunc(this.webgl.ONE, this.webgl.ONE_MINUS_SRC_ALPHA)
+    
+    // 翻转图片
+    this.webgl.pixelStorei(this.webgl.UNPACK_FLIP_Y_WEBGL, false);
+    // 有透明通道需要设置,否则有蒙层
+    this.webgl.pixelStorei(this.webgl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+   
     // 设置视口
     this.webgl.viewport(0, 0, this.canvas.width, this.canvas.height);
     // 生成着色器程序
@@ -248,17 +254,14 @@ class VapGl {
     var texture = gl.createTexture() as WebGLTexture;
     // 绑定纹理
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    // 翻转图片
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    // 有透明通道需要设置,否则有蒙层
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     // 设置纹理参数
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    // 圖片放大縮小處理
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     // 指定二维纹理图像
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
 
     // this.webgl.bindTexture(this.webgl.TEXTURE_2D, texture);
     // gl.bindTexture(gl.TEXTURE_2D, texture);
