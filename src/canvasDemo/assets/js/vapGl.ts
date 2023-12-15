@@ -64,6 +64,7 @@ class VapGl {
   canvas: HTMLCanvasElement;
   webgl: WebGLRenderingContext;
   program: WebGLProgram;
+  textureList: WebGLTexture[] = [];
   constructor(config) {
     this.canvas = config.el;
     this.initCanvas();
@@ -96,6 +97,11 @@ class VapGl {
     var a_screen_size = this.webgl.getAttribLocation(this.program, 'a_screen_size');
     // 找到片元着色器中 u_Color 变量的地址;
     // var u_Color = this.webgl.getUniformLocation(this.program, 'u_Color');
+    var u_image_rgb = this.webgl.getUniformLocation(this.program, 'u_image_rgb');
+    // var u_image_alpha = this.webgl.getUniformLocation(this.program, 'u_image_alpha');
+    // 绑定变量到纹理单元
+    this.webgl.uniform1i(u_image_rgb, 0); // 纹理单元 0
+    // this.webgl.uniform1i(u_image_alpha, 1); // 纹理单元 1
 
     // 给顶点着色器中的 a_screen_size 设置屏幕宽高信息
     this.webgl.vertexAttrib2f(a_screen_size, this.webgl.canvas.width, this.webgl.canvas.height);
@@ -248,6 +254,11 @@ class VapGl {
   }
 
   createTexture(gl: WebGLRenderingContext, image: HTMLImageElement, index): WebGLTexture {
+    if (this.textureList[index]) {
+      gl.activeTexture(this.webgl.TEXTURE0 + index);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+      return this.textureList[index]
+    }
     // 切换到纹理对象
     gl.activeTexture(this.webgl.TEXTURE0 + index);
     // 创建纹理对象
@@ -262,20 +273,13 @@ class VapGl {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     // 指定二维纹理图像
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
-
-    // this.webgl.bindTexture(this.webgl.TEXTURE_2D, texture);
-    // gl.bindTexture(gl.TEXTURE_2D, texture);
+    this.textureList[index] = texture;
     return texture;
   }
   /**
    * @param {string} str 图片路径
    */
   drawImage(img1: HTMLImageElement, img2: HTMLImageElement) {
-    var u_image_rgb = this.webgl.getUniformLocation(this.program, 'u_image_rgb');
-    // var u_image_alpha = this.webgl.getUniformLocation(this.program, 'u_image_alpha');
-    // 绑定变量到纹理单元
-    this.webgl.uniform1i(u_image_rgb, 0); // 纹理单元 0
-    // this.webgl.uniform1i(u_image_alpha, 1); // 纹理单元 1
     // 关联图片到纹理单元
     let imgTexture1 = this.createTexture(this.webgl, img1, 0);
     // let imgTexture2 = this.createTexture(this.webgl, img2, 1);

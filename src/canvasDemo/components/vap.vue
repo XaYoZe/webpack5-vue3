@@ -1,6 +1,6 @@
 <template>
   <div ref="dom">
-    <div @click="play">播放</div>
+    <div>延遲:{{ yanci }}</div>
     <!-- <div>{{fps}}</div> -->
     <canvas class="result" ref="cvsResult"></canvas>
     <video :src="mp4" ref="video" crossorigin="anonymous" loop playsinline autoplay muted webkit-playsinline preload="auto"></video>
@@ -13,10 +13,12 @@ export default {
   data () {
     return {
       mp4: require('@static/hero_0.mp4'),
+      yanci: 0,
+      prevTime: 0,
       fps: 0,
       config:{
         // 精准模式
-        accurate: false
+        accurate: true
       },
       cvs: {
         bg: null,
@@ -101,7 +103,12 @@ export default {
       this.countFps += (curTimestamp - this.timestamp);
       this.timestamp = curTimestamp;
 
+
       if (!!this.config.accurate && this.video.requestVideoFrameCallback) {
+        if (a - this.prevTime > 500) {
+          this.yanci = Math.round(b.expectedDisplayTime - b.presentationTime);
+          this.prevTime = a;
+        }
         this.animeIndex = this.video.requestVideoFrameCallback(this.draw.bind(this))
       } else {
         this.animeIndex = window.requestAnimationFrame(this.draw);
