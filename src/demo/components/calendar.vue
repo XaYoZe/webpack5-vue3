@@ -12,13 +12,16 @@
         </div>
         <div class="day-list">
             <div class="day" v-for="i in startWeek" :key="'null' + i">
-                <!-- {{  31 - (startWeek - i) }} -->
+                {{ new Date(dayList[0].startTimestamp * 1000 - 86400000).getDate() - (startWeek - i) }}
             </div>
             <div class="day" v-for="(day, i) in dayList" :key="'day' + i">
                 <span v-if="isShow(day)" :class="{
                     isSignIn: isSignIn(day, 1),
                     unSignIn: isSignIn(day, 2),
                 }" @click="clickDay(day)">{{ i + 1 }}</span>
+            </div>
+            <div class="day" v-for="i in (7 - (startWeek + dayList.length) % 7) % 7" :key="'null' + i">
+                {{  i  }}
             </div>
         </div>
     </div>
@@ -99,8 +102,8 @@ export default {
             let date = new Date(time);
             this.dateCache[time] = {
                 arr: [date.getFullYear(), date.getMonth() + 1, date.getDate()],
-                endTimestamp: parseInt(date.getTime() / 1000),
-                startTimestamp: parseInt(date.getTime() / 1000 + 24 * 60 * 60 ),
+                endTimestamp: parseInt(date.getTime() / 1000 + 24 * 60 * 60 ),
+                startTimestamp: parseInt(date.getTime() / 1000),
                 dateObj: date
             }
             return this.dateCache[time];
@@ -119,9 +122,9 @@ export default {
         // 判断是否已签到
         isSignIn (day, type) {
             if (type === 1) {
-                return this.signInList.some(item => day.endTimestamp <= item && item < day.startTimestamp)
+                return this.signInList.some(item => day.startTimestamp <= item && item < day.endTimestamp)
             } else if (type === 2) {
-                return this.unSignInList.some(item => day.endTimestamp <= item && item < day.startTimestamp)
+                return this.unSignInList.some(item => day.startTimestamp <= item && item < day.endTimestamp)
             }
             return false
         },
