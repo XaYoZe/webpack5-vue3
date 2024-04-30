@@ -47,7 +47,7 @@ export default {
       gainNode: null, // 音量控制
       voicesSize: 1 - 0.05, // 聲音長度
       selectAudio: '光良 - 童话',
-      level: 5 // 柱子數量
+      level: 2 // 柱子數量
     }
   },
   created () {
@@ -239,7 +239,7 @@ export default {
   .visualization {
     width: 800px;
     height: 500px;
-    background: url('../static/29.jpg') no-repeat top / cover;
+    // background: url('../static/29.jpg') no-repeat top / cover;
     display: flex;
     justify-content: space-around;
     align-items: flex-end;

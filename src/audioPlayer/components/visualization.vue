@@ -21,7 +21,7 @@ export default {
           backgroundAlpha: 0,
         //   resolution: window.devicePixelRatio,
         },
-      type: 1,
+      type: 0,
       length: 10,
       graphicsCache: [],
       topBarCache: [],
@@ -42,7 +42,6 @@ export default {
     },
     createItem () {
         if (this.type === 0) {
-            
             let graphics = this.graphicsCache[0];
             if (!graphics) {
                 graphics =  new PIXI.Graphics();
@@ -52,14 +51,18 @@ export default {
             let graphicsWidth = this.pixiConfig.width / this.list.length;
             let prevCoor = [0, this.pixiConfig.height]
             graphics.clear();
-            // graphics.moveTo(0, this.pixiConfig.height);
-            this.list.forEach((num, index) => {
-                // console.log(graphicsWidth * index, this.pixiConfig.height - num);
-                graphics.lineStyle(3, 0xbbeedd, 1);
-                graphics.moveTo(...prevCoor);
+            graphics.lineStyle(3, 0xbbeccc, 1);
+            let arr = [];
+            this.list.forEach((num, index, src) => {
+              if (index === 0) {
+                graphics.moveTo(graphicsWidth * index, this.pixiConfig.height - num);
+              } else {
+                let curCoor = prevCoor;
+                // let nextCoor = [graphicsWidth * (index + 1), this.pixiConfig.height - src[index + 1]]
                 prevCoor = [graphicsWidth * index, this.pixiConfig.height - num]
-                graphics.lineTo(...prevCoor);
-                graphics.closePath();
+                // graphics.lineTo(...prevCoor);
+                graphics.quadraticCurveTo(...curCoor, ...prevCoor)
+              }
             });
             // let graphicsWidth = this.pixiConfig.width / this.list.length;
             // let prevCoor = [0, this.pixiConfig.height]
@@ -90,9 +93,9 @@ export default {
                     this.graphicsCache[index] = graphics;
                     
                     topBar = new PIXI.Graphics();
-                    topBar.lineStyle(1, 0xbbeedd, 0.5);
-                    topBar.beginFill(0xeeaccc, 0.9);
-                    topBar.drawRect(0, 0, graphicsWidth, graphicsWidth);
+                    // topBar.lineStyle(1, 0xbbeedd, 0.5);
+                    topBar.beginFill(0xeeaccc, 0.5);
+                    topBar.drawRect(0, 0, graphicsWidth, 2);
                     topBar.endFill();
                     topBar.y = this.pixiConfig.height;
                     this.app.stage.addChild(topBar);
@@ -103,8 +106,8 @@ export default {
                 graphics.y = this.pixiConfig.height - num;
                 topBar.width = graphicsWidth;
                 topBar.x = index * (this.pixiConfig.width) / this.list.length;
-                if (topBar.y > this.pixiConfig.height - num - graphicsWidth) {
-                    topBar.y = this.pixiConfig.height - num - graphicsWidth;
+                if (topBar.y > this.pixiConfig.height - num) {
+                    topBar.y = this.pixiConfig.height - num;
                 } else {
                     topBar.y += 0.5;
                 }

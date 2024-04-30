@@ -132,6 +132,9 @@ module.exports = env => {
           use: [{
             loader: 'vue-loader',
             options: {
+              css: {
+               extract: false,
+              },
               transformAssetUrls: {
                 video: ['src', 'poster'],
                 audio: 'src',
