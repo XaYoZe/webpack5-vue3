@@ -1,16 +1,18 @@
 <template>
-  <textarea ref="testTextInput" :style="{height: `${ testTextHeight }px`}" v-model="modelValue"></textarea>
+  <textarea ref="testTextInput" :style="{height: `${ testTextHeight }px`}" v-model="$model"></textarea>
 </template>
 <script setup>
-import { ref, watch, nextTick, computed } from "vue";
+import { ref, watch, nextTick, computed, defineModel } from "vue";
 
 let props = defineProps(['modelValue']);
-let emits = defineEmits(['update:modelValue']);
+let $model = defineModel()
+// let emits = defineEmits(['update:modelValue']);
 let testTextHeight = ref(0);
 let testTextInput = ref(null);
 
-watch(computed(() => props.modelValue), (val) => {
-  emits('update:modelValue', val)
+watch($model, (val) => {
+  // emits('update:modelValue', val)
+  $model.value = val
   nextTick(() => {
     testTextHeight.value = 0;
     nextTick(() => {
