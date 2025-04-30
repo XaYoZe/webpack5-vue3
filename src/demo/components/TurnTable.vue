@@ -18,11 +18,9 @@
   </div>
 </template>
 <script lang="ts" setup>
+import { toCurPX } from '@/assets/utils/format'
 import { ref, computed, onMounted, reactive, watch, nextTick, defineSlots } from 'vue'
 
-const toCurPX = (num) => {
-  return (px / (750 / 100)) * (window.innerWidth / 100)
-}
 const $slots = defineSlots()
 const $emits = defineEmits({
   change: (index: number) => true,
@@ -199,7 +197,9 @@ const touchendEvent = () => {
 
 // 自動播放
 let countTime = 0
-const fpsTime = 1000 / 60
+const fps = 60
+const fpsTime = 1000 / fps
+const degFps = (360 / (typeof $props.autoplay === 'boolean' ? 3000 : $props.autoplay)) * fpsTime
 let autoplayFrame = null
 let autoplayTimer = null
 const startAutoPlay = (flag = true) => {
@@ -218,13 +218,13 @@ const startAutoPlay = (flag = true) => {
 // 自動播放事件
 const autoPlayEvent: FrameRequestCallback = (time: DOMHighResTimeStamp) => {
   disableTranstion.value = true
-  countTime += time | 0
-  if (countTime >= fpsTime) {
-    curDeg.value = (curDeg.value - 1) % 360
+  const delta = time - countTime
+  if (delta >= fpsTime) {
+    curDeg.value = (curDeg.value - degFps) % 360
     let index = Math.round(Math.abs((curDeg.value % 360) / baseDeg.value))
     let maxIndex = 360 / baseDeg.value - 1
     curIndex.value = index > maxIndex ? 0 : index
-    countTime -= fpsTime
+    countTime = time - (delta % fpsTime)
   }
   autoplayFrame = requestAnimationFrame(autoPlayEvent)
 }
