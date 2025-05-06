@@ -18,8 +18,11 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { toCurPX } from '@/assets/utils/format'
-import { ref, computed, onMounted, reactive, watch, nextTick, defineSlots } from 'vue'
+
+const toCurPX = (num) => {
+  return (num / (750 / 100)) * (window.innerWidth / 100)
+}
+import { ref, computed, onMounted, reactive, watch, nextTick, defineSlots, defineModel } from 'vue'
 
 const $slots = defineSlots()
 const $emits = defineEmits({
@@ -78,6 +81,38 @@ const baseDeg = ref(0)
 const curDeg = ref(curIndex.value * baseDeg.value * -1)
 // 禁用transtion
 const disableTranstion = ref(false)
+// 是否初始化完畢
+const ininted = ref(false)
+// 滾動到指定索引
+const turnTableItem = (index, anime = true) => {
+  disableTranstion.value = !anime
+  nextTick(() => {
+    const elItem = turnTableList.value[index]
+    const curDegVal = (Number(elItem.dataset?.baseDeg) + curDeg.value) % 360
+    if (curDegVal > 180) {
+      curDeg.value += 360 - curDegVal
+    } else {
+      if (curDegVal < -180) {
+        curDeg.value -= 360 + curDegVal
+      } else {
+        curDeg.value -= curDegVal
+      }
+    }
+    curIndex.value = index
+    resetDeg()
+  })
+}
+
+let remainderDegTimer = null
+// 重新計算角度
+const resetDeg = () => {
+  clearTimeout(remainderDegTimer)
+  remainderDegTimer = setTimeout(() => {
+    disableTranstion.value = true
+    curDeg.value = curDeg.value % 360
+  }, Number($props.duration))
+}
+
 // 點擊轉盤元素
 const turnTableItemClick = (event: MouseEvent & { target: HTMLDivElement }) => {
   if (event.target === turnTableListEl.value) return
@@ -90,14 +125,7 @@ const turnTableItemClick = (event: MouseEvent & { target: HTMLDivElement }) => {
   })
   if (index === -1) return
   // const index = turnTableList.value.indexOf(event.target)
-  const elItem = turnTableList.value[index]
-  const curDegVal = (Number(elItem.dataset?.baseDeg) + curDeg.value) % 360
-  if (curDegVal > 180) {
-    curDeg.value += 360 - curDegVal
-  } else {
-    curDeg.value -= curDegVal
-  }
-  curIndex.value = index
+  turnTableItem(index)
   event.preventDefault()
   event.stopPropagation()
 }
@@ -241,13 +269,11 @@ const initStyle = () => {
   let rotateRad = Math.abs((Number($props.rotateX) * Math.PI) / 180)
   let scaleY = ((1 - Number($props.scale)) * elementHeight) / 2
   let offsetY = toCurPX(Number($props.offsetY))
-  console.log(elementHeight)
   if ($props.front) {
     totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + 2 * (radius + (elementHeight - elementWidth) / 2) * Math.sin(rotateRad) + offsetY - scaleY
   } else {
     totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + (2 * radius + elementHeight) * Math.sin(rotateRad) + offsetY - scaleY
   }
-  console.log(scaleY)
 
   listStyle.value = {
     '--height': `${totalHeight}px`,
@@ -292,9 +318,9 @@ watch(
 
 /** 初始化 */
 function initEl() {
-  console.log('turnTableListEl', turnTableListEl.value)
   disableTranstion.value = true
   turnTableList.value = Array.from(turnTableListEl.value.children)
+  curIndex.value = $props.initIndex
   baseDeg.value = 360 / turnTableList.value.length
   curDeg.value = curIndex.value * baseDeg.value * -1
   turnTableList.value.forEach((item: HTMLDivElement, i) => {
@@ -311,6 +337,9 @@ function initEl() {
   initStyle()
   nextTick(() => {
     disableTranstion.value = true
+    if (turnTableList.value.length) {
+      ininted.value = true
+    }
     startAutoPlay()
   })
 }
@@ -319,13 +348,53 @@ function initEl() {
 watch(
   () => $slots.default?.(),
   (val) => {
-    console.log('$slots default', val)
+    let slotLength = val?.[0]?.children?.length
+    // 長度不變不初始化
+    if (turnTableList.value?.length === slotLength) return
     nextTick(() => {
       initEl()
     })
   },
   { immediate: true }
 )
+
+const turnNext = (anime = true) => {
+  let index = curIndex.value + 1
+  if (index >= turnTableList.value.length) {
+    index = 0
+  }
+  turnTableItem(index, anime)
+}
+
+const turnPrev = (anime = true) => {
+  let index = curIndex.value - 1
+  if (index <= 0) {
+    index = turnTableList.value.length - 1
+  }
+  turnTableItem(index, anime)
+}
+
+const trunToIndex = (index, anime = true) => {
+  if (ininted.value) {
+    if (index < 0 || index >= turnTableList.value.length) return false
+    turnTableItem(index, anime)
+  } else {
+    let watchCb = watch(ininted, (val) => {
+      if (val) {
+        if (index < 0 || index >= turnTableList.value.length) return false
+        turnTableItem(index, anime)
+        watchCb()
+      }
+    })
+  }
+}
+
+defineExpose({
+  initEl,
+  turnNext,
+  turnPrev,
+  trunToIndex,
+})
 </script>
 <style lang="scss">
 .turn_table {
