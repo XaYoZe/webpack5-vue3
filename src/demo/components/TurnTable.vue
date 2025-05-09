@@ -1,10 +1,9 @@
 <template>
-  <div class="turn_table">
+  <div class="turn_table" :style="listStyle">
     <div
       class="turn_table_list"
       ref="turnTableListEl"
       :class="[{ transition: !disableTranstion, front }]"
-      :style="listStyle"
       @click="turnTableItemClick"
       @touchstart="touchstartEvent"
       @touchmove="touchmoveEvent"
@@ -18,11 +17,11 @@
   </div>
 </template>
 <script lang="ts" setup>
+import { ref, computed, onMounted, reactive, watch, nextTick, defineSlots, defineModel } from 'vue'
 
 const toCurPX = (num) => {
   return (num / (750 / 100)) * (window.innerWidth / 100)
 }
-import { ref, computed, onMounted, reactive, watch, nextTick, defineSlots, defineModel } from 'vue'
 
 const $slots = defineSlots()
 const $emits = defineEmits({
@@ -126,8 +125,8 @@ const turnTableItemClick = (event: MouseEvent & { target: HTMLDivElement }) => {
   if (index === -1) return
   // const index = turnTableList.value.indexOf(event.target)
   turnTableItem(index)
-  event.preventDefault()
-  event.stopPropagation()
+  // event.preventDefault()
+  // event.stopPropagation()
 }
 
 // 拖動x坐標
@@ -177,8 +176,10 @@ const touchmoveEvent = (event) => {
     curDeg.value += (180 / window.innerWidth) * moveValue
   }
   prevScreenX = touch.screenX
-  event.preventDefault()
-  event.stopPropagation()
+  if (event.cancelable) {
+    event.preventDefault()
+  }
+  // event.stopPropagation()
 }
 // 彈起事件
 const touchendEvent = () => {
@@ -427,13 +428,14 @@ defineExpose({
       /** 中心向外 */
       transform: translate3d(-50%, calc(var(--offsetY) * (var(--offsetZ) - 0.5) + -50% + var(--scaleY)), 0) rotateX(var(--rotateX)) rotateY(calc(var(--deg) + var(--baseDeg)))
         translate3d(0, 0, var(--radius)) rotateY(calc((var(--deg) + var(--baseDeg)) * -1)) rotateX(calc(var(--rotateX) * -1)) rotateY(calc(var(--deg) + var(--baseDeg)))
-        scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ))));
+        scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ)))) translate3d(0, 0, calc(var(--radius) * 2));
     }
     &.front {
       > *:not(.turn_table_center) {
         /** 面向前方 */
         transform: translate3d(-50%, calc(var(--offsetY) * (var(--offsetZ) - 0.5) + -50% + var(--scaleY)), 0) rotateX(var(--rotateX)) rotateY(calc(var(--deg) + var(--baseDeg)))
-          translate3d(0, 0, var(--width)) rotateY(calc((var(--deg) + var(--baseDeg)) * -1)) rotateX(calc(var(--rotateX) * -1)) scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ))));
+          translate3d(0, 0, var(--width)) rotateY(calc((var(--deg) + var(--baseDeg)) * -1)) rotateX(calc(var(--rotateX) * -1)) scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ))))
+          translate3d(0, 0, calc(var(--radius) * 2));
       }
     }
   }
@@ -442,6 +444,7 @@ defineExpose({
     // top: 50%;
     // left: 50%;
     // transform: translate3d(-50%, -50%, 0);
+    transform: translate3d(0, 0, calc(var(--radius) * 2));
   }
 }
 </style>
