@@ -1,13 +1,19 @@
 <template>
-  <div class="turn_table" :style="listStyle">
+  <div class="turn_table" :style="turnTableStyle">
     <div
       class="turn_table_list"
       ref="turnTableListEl"
       :class="[{ transition: !disableTranstion, front }]"
+      :style="degStyle"
       @click="turnTableItemClick"
       @touchstart="touchstartEvent"
       @touchmove="touchmoveEvent"
       @touchend="touchendEvent"
+
+      @mousedown="touchstartEvent"
+      @mousemove="touchmoveEvent"
+      @mouseup="touchendEvent"
+      @mouseleave="touchendEvent"
     >
       <slot></slot>
     </div>
@@ -19,9 +25,6 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted, reactive, watch, nextTick, defineSlots, defineModel } from 'vue'
 
-const toCurPX = (num) => {
-  return (num / (750 / 100)) * (window.innerWidth / 100)
-}
 
 const $slots = defineSlots()
 const $emits = defineEmits({
@@ -29,24 +32,28 @@ const $emits = defineEmits({
 })
 const $props = withDefaults(
   defineProps<{
-    /** 縮放效果 */
-    scale: string | number
-    /** 透明度 */
-    opacity: string | number
-    /** 旋轉半徑 */
-    radius: string | number
+    /** 縮放效果, 从前往后缩放 */
+    scale?: string | number
+    /** 透明度, 从前往后透明 */
+    opacity?: string | number
+    /** 旋轉半徑, 像素 */
+    radius?: string | number
     /** 正面朝前 */
-    front: boolean
-    /** 傾斜角度 */
-    rotateX: string | number
-    /** 過度時長 */
-    duration: string | number
-    /** autoplay */
-    autoplay: boolean | number
-    /** 上下偏移 */
-    offsetY: string | number
+    front?: boolean
+    /** 傾斜角度, 角度 */
+    rotateX?: string | number
+    /** 过渡時長, 毫秒 */
+    duration?: string | number
+    /** 自动旋转, 毫秒, 可负值 */
+    autoplay?: boolean | number
+    /** 上下偏移, 像素 */
+    offsetY?: string | number
     /** 初始化索引 */
-    initIndex: number
+    initIndex?: number
+    /** 设计宽度 */
+    designWidth?: number
+    /** 选中时样式名 */
+    selectClassName: string
   }>(),
   {
     // 縮放
@@ -65,9 +72,17 @@ const $props = withDefaults(
     offsetY: 0,
     /** 初始化索引 */
     initIndex: 0,
+    /** 设计宽度 */
+    designWidth: 750,
+    /** 选中时样式名 */
+    selectClassName: 'turn_table_item_active',
   }
 )
-
+// 宽度转换
+const toCurPX = (num: number) => {
+  if (!$props.designWidth) return num
+  return (num / ($props.designWidth / 100)) * (window.innerWidth / 100)
+}
 // slot 列表
 const turnTableList = ref<HTMLDivElement[]>([])
 // 容器元素
@@ -83,7 +98,7 @@ const disableTranstion = ref(false)
 // 是否初始化完畢
 const ininted = ref(false)
 // 滾動到指定索引
-const turnTableItem = (index, anime = true) => {
+const turnTableItem = (index: number, anime = true) => {
   disableTranstion.value = !anime
   nextTick(() => {
     const elItem = turnTableList.value[index]
@@ -102,7 +117,7 @@ const turnTableItem = (index, anime = true) => {
   })
 }
 
-let remainderDegTimer = null
+let remainderDegTimer:ReturnType<typeof setTimeout> = null
 // 重新計算角度
 const resetDeg = () => {
   clearTimeout(remainderDegTimer)
@@ -140,23 +155,26 @@ let moveLimit = {
   moveX: 0,
   moveY: 0,
   isMove: false,
+  isStart: false
 }
 // 按下事件
-const touchstartEvent = (event) => {
-  let touchItem = event.touches[0]
+const touchstartEvent = (event: TouchEvent & MouseEvent) => {
+  let touchItem = event.touches?.length ? event.touches[0] : {screenX:event.screenX, screenY: screenY}
   prevScreenX = touchItem.screenX
   moveLimit.touchX = touchItem.screenX
   moveLimit.touchY = touchItem.screenY
   moveLimit.moveX = 0
   moveLimit.moveY = 0
+  moveLimit.isStart = true;
   startAutoPlay(false)
 }
 // 拖動事件
-const touchmoveEvent = (event) => {
-  const touch = event.touches[0]
+const touchmoveEvent = (event: TouchEvent & MouseEvent) => {
+  if (!moveLimit.isStart) return;
+  let touchItem = event.touches?.length ? event.touches[0] : {screenX:event.screenX, screenY: screenY}
   // 計算移動距離
-  moveLimit.moveX = touch.screenX - moveLimit.touchX
-  moveLimit.moveY = touch.screenY - moveLimit.touchY
+  moveLimit.moveX = touchItem.screenX - moveLimit.touchX
+  moveLimit.moveY = touchItem.screenY - moveLimit.touchY
   // 判斷是否為拖動
   if (!moveLimit.isMove) {
     if (moveLimit.moveX >= 0 && moveLimit.moveX < Math.abs(moveLimit.moveY)) {
@@ -172,10 +190,10 @@ const touchmoveEvent = (event) => {
   if (prevScreenX === 0) {
     moveValue = 0
   } else {
-    moveValue = touch.screenX - prevScreenX
+    moveValue = touchItem.screenX - prevScreenX
     curDeg.value += (180 / window.innerWidth) * moveValue
   }
-  prevScreenX = touch.screenX
+  prevScreenX = touchItem.screenX
   if (event.cancelable) {
     event.preventDefault()
   }
@@ -183,6 +201,8 @@ const touchmoveEvent = (event) => {
 }
 // 彈起事件
 const touchendEvent = () => {
+  if (!moveLimit.isStart) return;
+  moveLimit.isStart = false
   if (moveLimit.isMove) {
     moveLimit.isMove = false
     disableTranstion.value = false
@@ -229,8 +249,8 @@ let countTime = 0
 const fps = 60
 const fpsTime = 1000 / fps
 const degFps = (360 / (typeof $props.autoplay === 'boolean' ? 3000 : $props.autoplay)) * fpsTime
-let autoplayFrame = null
-let autoplayTimer = null
+let autoplayFrame:number = null
+let autoplayTimer:ReturnType<typeof setTimeout> = null
 const startAutoPlay = (flag = true) => {
   if ($props.autoplay) {
     if (flag) {
@@ -258,10 +278,8 @@ const autoPlayEvent: FrameRequestCallback = (time: DOMHighResTimeStamp) => {
   autoplayFrame = requestAnimationFrame(autoPlayEvent)
 }
 
-/** 列表樣式 */
-const listStyle = ref({})
-/** 初始化列表樣式 */
-const initStyle = () => {
+/** 转盘基础样式 */
+const turnTableStyle = computed(() => {
   let radius = toCurPX(Number($props.radius))
   let totalHeight = radius
   let elementHeight = Number(turnTableList.value[0]?.dataset?.height || 0)
@@ -276,39 +294,47 @@ const initStyle = () => {
     totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + (2 * radius + elementHeight) * Math.sin(rotateRad) + offsetY - scaleY
   }
 
-  listStyle.value = {
+  return {
     '--height': `${totalHeight}px`,
     '--width': `${radius * 2}px`,
     '--scale': $props.scale,
     '--radius': `${radius}px`,
     '--opacity': $props.opacity,
-    '--deg': `${curDeg.value}deg`,
-    '--degVal': `${curDeg.value <= 0 ? Math.abs(curDeg.value % 360) : 360 - (curDeg.value % 360)}`,
     '--rotateX': `${$props.rotateX}deg`,
     '--duration': `${$props.duration}ms`,
     '--offsetY': `${offsetY}px`,
     '--scaleY': `${scaleY / -2}px`,
   }
-}
-
+})
+/** 角度樣式 */
+const degStyle = ref<Record<string, any>>({})
 /** 監聽角度變化 */
 watch(curDeg, () => {
-  listStyle.value['--deg'] = `${curDeg.value}deg`
-  listStyle.value['--degVal'] = `${curDeg.value <= 0 ? Math.abs(curDeg.value % 360) : 360 - (curDeg.value % 360)}`
-})
+  degStyle.value['--deg'] = `${curDeg.value}deg`
+  degStyle.value['--degVal'] = `${curDeg.value <= 0 ? Math.abs(curDeg.value % 360) : 360 - (curDeg.value % 360)}`
+}, {immediate: true})
 
 /** 監聽索引變化 */
 watch(
-  [curIndex, turnTableList],
-  ([index, list]) => {
-    if (list.length > 0) {
-      list.map((item, i) => {
-        if (i === index) {
-          item.classList.add('active')
-        } else {
-          item.classList.remove('active')
-        }
-      })
+  [curIndex, turnTableListEl],
+  ([index, el]) => {
+    console.log(turnTableListEl.value, el);
+    if (el) {
+      let oldEl = el.querySelector(`.${$props.selectClassName}`)
+      let newEl = el.children[index];
+      if (oldEl) {
+        oldEl.classList.remove($props.selectClassName)
+      }
+      if (newEl) {
+        newEl.classList.add($props.selectClassName)
+      }
+      // list.map((item, i) => {
+      //   if (i === index) {
+      //     item.classList.add('active')
+      //   } else {
+      //     item.classList.remove('active')
+      //   }
+      // })
       if (index > -1) {
         $emits('change', index)
       }
@@ -331,11 +357,11 @@ function initEl() {
     item.dataset.height = String(box.height)
     item.dataset.width = String(box.width)
     item.style.setProperty('--baseDeg', `${deg}deg`)
-    item.style.setProperty('--width', `${toCurPX($props.radius) - box.width / 2}px`)
+    item.style.setProperty('--width', `${toCurPX(Number($props.radius)) - box.width / 2}px`)
     item.style.setProperty('--baseDegVal', `${deg}`)
   })
   /** 初始化樣式 */
-  initStyle()
+  // initStyle()
   nextTick(() => {
     disableTranstion.value = true
     if (turnTableList.value.length) {
@@ -375,7 +401,7 @@ const turnPrev = (anime = true) => {
   turnTableItem(index, anime)
 }
 
-const trunToIndex = (index, anime = true) => {
+const trunToIndex = (index: number, anime = true) => {
   if (ininted.value) {
     if (index < 0 || index >= turnTableList.value.length) return false
     turnTableItem(index, anime)
@@ -426,9 +452,10 @@ defineExpose({
       top: 50%;
       left: 50%;
       /** 中心向外 */
-      transform: translate3d(-50%, calc(var(--offsetY) * (var(--offsetZ) - 0.5) + -50% + var(--scaleY)), 0) rotateX(var(--rotateX)) rotateY(calc(var(--deg) + var(--baseDeg)))
+
+      transform: translate3d(-50%, calc(var(--offsetY) * (var(--offsetZ) - 0.5) + -50% + var(--scaleY)), calc(var(--radius) * 2)) rotateX(var(--rotateX)) rotateY(calc(var(--deg) + var(--baseDeg)))
         translate3d(0, 0, var(--radius)) rotateY(calc((var(--deg) + var(--baseDeg)) * -1)) rotateX(calc(var(--rotateX) * -1)) rotateY(calc(var(--deg) + var(--baseDeg)))
-        scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ)))) translate3d(0, 0, calc(var(--radius) * 2));
+        scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ))));
     }
     &.front {
       > *:not(.turn_table_center) {
