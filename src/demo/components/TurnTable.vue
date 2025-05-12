@@ -23,7 +23,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { ref, computed, onMounted, reactive, watch, nextTick, defineSlots, defineModel } from 'vue'
+import { ref, computed, onMounted, reactive, watch, nextTick, defineSlots, defineModel, onUpdated } from 'vue'
 
 
 const $slots = defineSlots()
@@ -318,7 +318,6 @@ watch(curDeg, () => {
 watch(
   [curIndex, turnTableListEl],
   ([index, el]) => {
-    console.log(turnTableListEl.value, el);
     if (el) {
       let oldEl = el.querySelector(`.${$props.selectClassName}`)
       let newEl = el.children[index];
@@ -375,9 +374,11 @@ function initEl() {
 watch(
   () => $slots.default?.(),
   (val) => {
-    let slotLength = val?.[0]?.children?.length
     // 長度不變不初始化
-    if (turnTableList.value?.length === slotLength) return
+      let children = val?.[0]?.children;
+    if (turnTableList.value?.length === children.length) {
+      return
+    }
     nextTick(() => {
       initEl()
     })
