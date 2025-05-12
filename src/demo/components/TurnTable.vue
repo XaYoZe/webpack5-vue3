@@ -191,7 +191,7 @@ const touchmoveEvent = (event: TouchEvent & MouseEvent) => {
     moveValue = 0
   } else {
     moveValue = touchItem.screenX - prevScreenX
-    curDeg.value += (180 / window.innerWidth) * moveValue
+    curDeg.value += (180 / toCurPX(Number($props.radius) * 2)) * moveValue
   }
   prevScreenX = touchItem.screenX
   if (event.cancelable) {
