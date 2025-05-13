@@ -30,6 +30,14 @@ const $slots = defineSlots()
 const $emits = defineEmits({
   change: (index: number) => true,
 })
+
+type AutoPlay = boolean | number | {
+  /** 自动旋转, 毫秒, 可负值 */
+  duration?: number
+  /** 停留时间, 毫秒 */
+  stayTime?: number
+}
+
 const $props = withDefaults(
   defineProps<{
     /** 縮放效果, 从前往后缩放 */
@@ -45,7 +53,7 @@ const $props = withDefaults(
     /** 过渡時長, 毫秒 */
     duration?: string | number
     /** 自动旋转, 毫秒, 可负值 */
-    autoplay?: boolean | number
+    autoplay?: AutoPlay
     /** 上下偏移, 像素 */
     offsetY?: string | number
     /** 初始化索引 */
@@ -54,6 +62,8 @@ const $props = withDefaults(
     designWidth?: number
     /** 选中时样式名 */
     selectClassName: string
+    click: boolean,
+    draggable: boolean
   }>(),
   {
     // 縮放
@@ -76,6 +86,10 @@ const $props = withDefaults(
     designWidth: 750,
     /** 选中时样式名 */
     selectClassName: 'turn_table_item_active',
+    /** 可点击 */
+    click: false,
+    /** 可拖拽 */
+    draggable: false
   }
 )
 // 宽度转换
@@ -129,6 +143,7 @@ const resetDeg = () => {
 
 // 點擊轉盤元素
 const turnTableItemClick = (event: MouseEvent & { target: HTMLDivElement }) => {
+  if (!$props.click) return
   if (event.target === turnTableListEl.value) return
   let index = -1
   turnTableList.value.some((item, i) => {
@@ -159,6 +174,7 @@ let moveLimit = {
 }
 // 按下事件
 const touchstartEvent = (event: TouchEvent & MouseEvent) => {
+  if (!$props.draggable) return
   let touchItem = event.touches?.length ? event.touches[0] : {screenX:event.screenX, screenY: screenY}
   prevScreenX = touchItem.screenX
   moveLimit.touchX = touchItem.screenX
@@ -170,7 +186,7 @@ const touchstartEvent = (event: TouchEvent & MouseEvent) => {
 }
 // 拖動事件
 const touchmoveEvent = (event: TouchEvent & MouseEvent) => {
-  if (!moveLimit.isStart) return;
+  if (!moveLimit.isStart || !$props.draggable) return;
   let touchItem = event.touches?.length ? event.touches[0] : {screenX:event.screenX, screenY: screenY}
   // 計算移動距離
   moveLimit.moveX = touchItem.screenX - moveLimit.touchX
@@ -201,7 +217,7 @@ const touchmoveEvent = (event: TouchEvent & MouseEvent) => {
 }
 // 彈起事件
 const touchendEvent = () => {
-  if (!moveLimit.isStart) return;
+  if (!moveLimit.isStart || !$props.draggable) return;
   moveLimit.isStart = false
   if (moveLimit.isMove) {
     moveLimit.isMove = false
@@ -246,11 +262,32 @@ const touchendEvent = () => {
 
 // 自動播放
 let countTime = 0
+const autoplay = computed(() => {
+  let obj:AutoPlay = {
+    duration: 0,
+    stayTime: 0
+  }
+  if (typeof $props.autoplay === 'boolean') {
+    obj = {
+      duration: 10000,
+      stayTime: 0
+    }
+  } else if (typeof $props.autoplay === 'number') {
+    obj = {
+      duration: $props.autoplay,
+      stayTime: 0
+    }
+  } else if (typeof $props.autoplay === 'object') {
+    return $props.autoplay
+  }
+  return obj
+})
 const fps = 60
 const fpsTime = 1000 / fps
-const degFps = (360 / (typeof $props.autoplay === 'boolean' ? 3000 : $props.autoplay)) * fpsTime
+const degFps = computed(() => (360 / (autoplay.value.duration)) * fpsTime)
 let autoplayFrame:number = null
 let autoplayTimer:ReturnType<typeof setTimeout> = null
+
 const startAutoPlay = (flag = true) => {
   if ($props.autoplay) {
     if (flag) {
@@ -269,11 +306,22 @@ const autoPlayEvent: FrameRequestCallback = (time: DOMHighResTimeStamp) => {
   disableTranstion.value = true
   const delta = time - countTime
   if (delta >= fpsTime) {
-    curDeg.value = (curDeg.value - degFps) % 360
-    let index = Math.round(Math.abs((curDeg.value % 360) / baseDeg.value))
-    let maxIndex = 360 / baseDeg.value - 1
-    curIndex.value = index > maxIndex ? 0 : index
+    curDeg.value = Number(((curDeg.value - degFps.value) % 360).toFixed(2))
+    
     countTime = time - (delta % fpsTime)
+    let degVal = Math.abs(Number((curDeg.value / baseDeg.value).toFixed(2)))
+    if (degVal % 1 <= 1) {
+      let index = Math.round(degVal)
+      let maxIndex = 360 / baseDeg.value - 1
+      curIndex.value = index > maxIndex ? 0 : index
+      // console.log((curDeg.value / baseDeg.value).toFixed(2), curIndex.value, baseDeg.value);
+    } else {
+      curIndex.value = -1;
+    }
+
+    // if (Math.abs((curDeg.value) % baseDeg.value) >= 1 && Math.abs((curDeg.value) % baseDeg.value) <= (baseDeg.value - 1)) {
+    // } else {
+    // }
   }
   autoplayFrame = requestAnimationFrame(autoPlayEvent)
 }
@@ -313,6 +361,7 @@ watch(curDeg, () => {
   degStyle.value['--deg'] = `${curDeg.value}deg`
   degStyle.value['--degVal'] = `${curDeg.value <= 0 ? Math.abs(curDeg.value % 360) : 360 - (curDeg.value % 360)}`
 }, {immediate: true})
+
 
 /** 監聽索引變化 */
 watch(
