@@ -1,20 +1,16 @@
 <template>
-  <div class="turn_table" :style="turnTableStyle">
-    <div
-      class="turn_table_list"
-      ref="turnTableListEl"
-      :class="[{ transition: !disableTranstion, front }]"
-      :style="degStyle"
-      @click="turnTableItemClick"
-      @touchstart="touchstartEvent"
-      @touchmove="touchmoveEvent"
-      @touchend="touchendEvent"
-
-      @mousedown="touchstartEvent"
-      @mousemove="touchmoveEvent"
-      @mouseup="touchendEvent"
-      @mouseleave="touchendEvent"
-    >
+  <div
+    class="turn_table"
+    @touchstart="touchstartEvent"
+    @touchmove="touchmoveEvent"
+    @touchend="touchendEvent"
+    @mousedown="touchstartEvent"
+    @mousemove="touchmoveEvent"
+    @mouseup="touchendEvent"
+    @mouseleave="touchendEvent"
+    :style="turnTableStyle"
+  >
+    <div class="turn_table_list" ref="turnTableListEl" :class="[{ transition: !disableTranstion, front }]" :style="degStyle">
       <slot></slot>
     </div>
     <div class="turn_table_center" v-if="$slots.center">
@@ -23,47 +19,53 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { ref, computed, onMounted, reactive, watch, nextTick, defineSlots, defineModel, onUpdated } from 'vue'
+import { ref, computed, onMounted, reactive, watch, nextTick, defineSlots, defineModel, onUpdated } from 'vue';
 
-
-const $slots = defineSlots()
+const $slots = defineSlots();
 const $emits = defineEmits({
   change: (index: number) => true,
-})
+});
 
-type AutoPlay = boolean | number | {
-  /** 自动旋转, 毫秒, 可负值 */
-  duration?: number
-  /** 停留时间, 毫秒 */
-  stayTime?: number
-}
+type AutoPlay =
+  | boolean
+  | number
+  | {
+      /** 自动旋转, 毫秒, 可负值 */
+      duration?: number;
+      /** 停留时间, 毫秒 */
+      stayTime?: number;
+    };
 
 const $props = withDefaults(
   defineProps<{
     /** 縮放效果, 从前往后缩放 */
-    scale?: string | number
+    scale?: string | number;
     /** 透明度, 从前往后透明 */
-    opacity?: string | number
+    opacity?: string | number;
     /** 旋轉半徑, 像素 */
-    radius?: string | number
+    radius?: string | number;
     /** 正面朝前 */
-    front?: boolean
+    front?: boolean;
     /** 傾斜角度, 角度 */
-    rotateX?: string | number
+    rotateX?: string | number;
     /** 过渡時長, 毫秒 */
-    duration?: string | number
+    duration?: string | number;
     /** 自动旋转, 毫秒, 可负值 */
-    autoplay?: AutoPlay
+    autoplay?: AutoPlay;
     /** 上下偏移, 像素 */
-    offsetY?: string | number
+    offsetY?: string | number;
     /** 初始化索引 */
-    initIndex?: number
+    initIndex?: number;
     /** 设计宽度 */
-    designWidth?: number
+    designWidth?: number;
     /** 选中时样式名 */
-    selectClassName: string
-    click: boolean,
-    draggable: boolean
+    selectClassName?: string;
+    /** 透视距离 */
+    perspective?: string | number | false;
+    /** 可点击 */
+    click?: boolean;
+    /** 可拖动 */
+    draggable?: boolean;
   }>(),
   {
     // 縮放
@@ -86,83 +88,98 @@ const $props = withDefaults(
     designWidth: 750,
     /** 选中时样式名 */
     selectClassName: 'turn_table_item_active',
+    /** 透视距离 */
+    perspective: false,
     /** 可点击 */
     click: false,
     /** 可拖拽 */
-    draggable: false
+    draggable: false,
   }
-)
+);
 // 宽度转换
 const toCurPX = (num: number) => {
-  if (!$props.designWidth) return num
-  return (num / ($props.designWidth / 100)) * (window.innerWidth / 100)
-}
+  if (!$props.designWidth) return num;
+  return (num / ($props.designWidth / 100)) * (window.innerWidth / 100);
+};
 // slot 列表
-const turnTableList = ref<HTMLDivElement[]>([])
+const turnTableList = ref<HTMLDivElement[]>([]);
 // 容器元素
-const turnTableListEl = ref(null)
+const turnTableListEl = ref(null);
 // 當前索引
-const curIndex = ref($props.initIndex)
+const curIndex = ref($props.initIndex);
 // 轉動基礎角度
-const baseDeg = ref(0)
+const baseDeg = ref(0);
 // 當前角度
-const curDeg = ref(curIndex.value * baseDeg.value * -1)
+const curDeg = ref(curIndex.value * baseDeg.value * -1);
 // 禁用transtion
-const disableTranstion = ref(false)
+const disableTranstion = ref(false);
 // 是否初始化完畢
-const ininted = ref(false)
+const ininted = ref(false);
 // 滾動到指定索引
 const turnTableItem = (index: number, anime = true) => {
-  disableTranstion.value = !anime
+  disableTranstion.value = !anime;
   nextTick(() => {
-    const elItem = turnTableList.value[index]
-    const curDegVal = (Number(elItem.dataset?.baseDeg) + curDeg.value) % 360
+    const elItem = turnTableList.value[index];
+    const curDegVal = (Number(elItem.dataset?.baseDeg) + curDeg.value) % 360;
     if (curDegVal > 180) {
-      curDeg.value += 360 - curDegVal
+      curDeg.value += 360 - curDegVal;
     } else {
       if (curDegVal < -180) {
-        curDeg.value -= 360 + curDegVal
+        curDeg.value -= 360 + curDegVal;
       } else {
-        curDeg.value -= curDegVal
+        curDeg.value -= curDegVal;
       }
     }
-    curIndex.value = index
-    resetDeg()
-  })
-}
+    curIndex.value = index;
+    resetDeg();
+  });
+};
 
-let remainderDegTimer:ReturnType<typeof setTimeout> = null
+let remainderDegTimer: ReturnType<typeof setTimeout> = null;
 // 重新計算角度
 const resetDeg = () => {
-  clearTimeout(remainderDegTimer)
+  clearTimeout(remainderDegTimer);
   remainderDegTimer = setTimeout(() => {
-    disableTranstion.value = true
-    curDeg.value = curDeg.value % 360
-  }, Number($props.duration))
-}
+    disableTranstion.value = true;
+    curDeg.value = curDeg.value % 360;
+  }, Number($props.duration));
+};
 
 // 點擊轉盤元素
-const turnTableItemClick = (event: MouseEvent & { target: HTMLDivElement }) => {
-  if (!$props.click) return
-  if (event.target === turnTableListEl.value) return
-  let index = -1
+let deboundClick = false;
+let clickAutoPlayTime: ReturnType<typeof setTimeout> = null;
+const turnTableItemClick = (event: MouseEvent & TouchEvent) => {
+  if (!$props.click || moveLimit.isMove) return;
+  if (event.target === turnTableListEl.value) return;
+  if (deboundClick) return;
+  deboundClick = true;
+  setTimeout(() => {
+    console.log('turnTableItemClick setTimeout', deboundClick, moveLimit.isMove);
+    deboundClick = false;
+  }, 200);
+  startAutoPlay(false);
+  let index = -1;
   turnTableList.value.some((item, i) => {
-    if (item.contains(event.target)) {
-      index = i
-      return true
+    if (item.contains(event.target as HTMLDivElement)) {
+      index = i;
+      return true;
     }
-  })
-  if (index === -1) return
+  });
+  if (index === -1) return;
   // const index = turnTableList.value.indexOf(event.target)
-  turnTableItem(index)
+  turnTableItem(index);
+  clearTimeout(clickAutoPlayTime);
+  clickAutoPlayTime = setTimeout(() => {
+    startAutoPlay();
+  }, Number($props.duration));
   // event.preventDefault()
   // event.stopPropagation()
-}
+};
 
 // 拖動x坐標
-let prevScreenX = 0
+let prevScreenX = 0;
 // 拖動距離
-let moveValue = 0
+let moveValue = 0;
 // 拖動限制
 let moveLimit = {
   touchX: 0,
@@ -170,61 +187,63 @@ let moveLimit = {
   moveX: 0,
   moveY: 0,
   isMove: false,
-  isStart: false
-}
+  isStart: false,
+};
 // 按下事件
 const touchstartEvent = (event: TouchEvent & MouseEvent) => {
-  if (!$props.draggable) return
-  let touchItem = event.touches?.length ? event.touches[0] : {screenX:event.screenX, screenY: screenY}
-  prevScreenX = touchItem.screenX
-  moveLimit.touchX = touchItem.screenX
-  moveLimit.touchY = touchItem.screenY
-  moveLimit.moveX = 0
-  moveLimit.moveY = 0
+  if (!$props.draggable) return;
+  let touchItem = event.changedTouches?.length ? event.changedTouches[0] : { screenX: event.screenX, screenY: event.screenY };
+  prevScreenX = touchItem.screenX;
+  moveLimit.touchX = touchItem.screenX;
+  moveLimit.touchY = touchItem.screenY;
+  moveLimit.moveX = 0;
+  moveLimit.moveY = 0;
   moveLimit.isStart = true;
-  startAutoPlay(false)
-}
+};
 // 拖動事件
 const touchmoveEvent = (event: TouchEvent & MouseEvent) => {
   if (!moveLimit.isStart || !$props.draggable) return;
-  let touchItem = event.touches?.length ? event.touches[0] : {screenX:event.screenX, screenY: screenY}
+  let touchItem = event.changedTouches?.length ? event.changedTouches[0] : { screenX: event.screenX, screenY: event.screenY };
   // 計算移動距離
-  moveLimit.moveX = touchItem.screenX - moveLimit.touchX
-  moveLimit.moveY = touchItem.screenY - moveLimit.touchY
+  moveLimit.moveX = touchItem.screenX - moveLimit.touchX;
+  moveLimit.moveY = touchItem.screenY - moveLimit.touchY;
   // 判斷是否為拖動
   if (!moveLimit.isMove) {
     if (moveLimit.moveX >= 0 && moveLimit.moveX < Math.abs(moveLimit.moveY)) {
-      return
+      return;
     } else if (moveLimit.moveX < 0 && Math.abs(moveLimit.moveX) < Math.abs(moveLimit.moveY)) {
-      return
+      return;
     }
+    /** 清除自动播放 */
+    startAutoPlay(false);
   }
   // 正在拖動
-  moveLimit.isMove = true
-  disableTranstion.value = true
-  curIndex.value = -1
+  moveLimit.isMove = true;
+  disableTranstion.value = true;
+  curIndex.value = -1;
   if (prevScreenX === 0) {
-    moveValue = 0
+    moveValue = 0;
   } else {
-    moveValue = touchItem.screenX - prevScreenX
-    curDeg.value += (180 / toCurPX(Number($props.radius) * 2)) * moveValue
+    moveValue = touchItem.screenX - prevScreenX;
+    curDeg.value += (180 / toCurPX(Number($props.radius) * 2)) * moveValue;
   }
-  prevScreenX = touchItem.screenX
+  prevScreenX = touchItem.screenX;
   if (event.cancelable) {
-    event.preventDefault()
+    event.preventDefault();
   }
   // event.stopPropagation()
-}
+};
 // 彈起事件
-const touchendEvent = () => {
+const touchendEvent = (event: TouchEvent & MouseEvent) => {
   if (!moveLimit.isStart || !$props.draggable) return;
-  moveLimit.isStart = false
+  let touchItem = event.changedTouches?.length ? event.changedTouches[0] : { screenX: event.screenX, screenY: event.screenY };
+  moveLimit.isStart = false;
   if (moveLimit.isMove) {
-    moveLimit.isMove = false
-    disableTranstion.value = false
-    prevScreenX = 0
-    moveValue = 0
-    let index = 0
+    moveLimit.isMove = false;
+    disableTranstion.value = false;
+    prevScreenX = 0;
+    moveValue = 0;
+    let index = 0;
     nextTick(() => {
       // 根據當前角度判斷
       if (curDeg.value < 0) {
@@ -233,11 +252,11 @@ const touchendEvent = () => {
         //   curDeg.value = (turnTableList.value.length - 1) * baseDeg.value * -1
         // } else
         if (Math.abs(curDeg.value % baseDeg.value) <= baseDeg.value / 2) {
-          curDeg.value += Math.abs(curDeg.value % baseDeg.value)
+          curDeg.value += Math.abs(curDeg.value % baseDeg.value);
         } else {
-          curDeg.value -= baseDeg.value - Math.abs(curDeg.value % baseDeg.value)
+          curDeg.value -= baseDeg.value - Math.abs(curDeg.value % baseDeg.value);
         }
-        index = Math.abs((curDeg.value % 360) / baseDeg.value)
+        index = Math.abs((curDeg.value % 360) / baseDeg.value);
       } else {
         // 限制邏輯
         // if (Math.abs(curDeg.value) > 0) {
@@ -246,101 +265,127 @@ const touchendEvent = () => {
         //   curDeg.value = turnTableList.value.length * baseDeg.value
         // } else {
         if (Math.abs(curDeg.value % baseDeg.value) <= baseDeg.value / 2) {
-          curDeg.value -= Math.abs(curDeg.value % baseDeg.value)
+          curDeg.value -= Math.abs(curDeg.value % baseDeg.value);
         } else {
-          curDeg.value += baseDeg.value - Math.abs(curDeg.value % baseDeg.value)
+          curDeg.value += baseDeg.value - Math.abs(curDeg.value % baseDeg.value);
         }
         // }
-        index = curDeg.value === 0 ? 0 : 360 / baseDeg.value - Math.abs((curDeg.value % 360) / baseDeg.value)
+        index = curDeg.value === 0 ? 0 : 360 / baseDeg.value - Math.abs((curDeg.value % 360) / baseDeg.value);
       }
       /** 處理精度問題 */
-      curIndex.value = Math.round(index)
-      startAutoPlay()
-    })
+      curIndex.value = Math.round(index);
+      startAutoPlay();
+    });
+  } else {
+    if (Math.abs(touchItem.screenX - moveLimit.touchX) < 10 && Math.abs(touchItem.screenY - moveLimit.touchY) < 10) {
+      turnTableItemClick(event);
+      return;
+    }
+    console.log('no move');
   }
-}
+};
 
 // 自動播放
-let countTime = 0
+let countTime = 0;
 const autoplay = computed(() => {
-  let obj:AutoPlay = {
+  let obj: AutoPlay = {
     duration: 0,
-    stayTime: 0
-  }
+    stayTime: 500,
+  };
   if (typeof $props.autoplay === 'boolean') {
-    obj = {
-      duration: 10000,
-      stayTime: 0
-    }
+    obj.duration = 10000;
   } else if (typeof $props.autoplay === 'number') {
-    obj = {
-      duration: $props.autoplay,
-      stayTime: 0
-    }
+    obj.duration = $props.autoplay;
   } else if (typeof $props.autoplay === 'object') {
-    return $props.autoplay
+    return Object.assign(obj, $props.autoplay);
   }
-  return obj
-})
-const fps = 60
-const fpsTime = 1000 / fps
-const degFps = computed(() => (360 / (autoplay.value.duration)) * fpsTime)
-let autoplayFrame:number = null
-let autoplayTimer:ReturnType<typeof setTimeout> = null
+  return obj;
+});
+const fps = 60;
+const fpsTime = 1000 / fps;
+const degFps = computed(() => (360 / autoplay.value.duration) * fpsTime);
+let autoplayFrame: number = null;
+let autoplayTimer: ReturnType<typeof setTimeout> = null;
+let autoplayWaitTimer: ReturnType<typeof setTimeout> = null;
 
 const startAutoPlay = (flag = true) => {
   if ($props.autoplay) {
+    clearTimeout(autoplayTimer);
+    clearTimeout(autoplayWaitTimer);
+    cancelAnimationFrame(autoplayFrame);
     if (flag) {
       autoplayTimer = setTimeout(() => {
-        autoplayFrame = requestAnimationFrame(autoPlayEvent)
-      }, 1000)
+        autoplayFrame = requestAnimationFrame(autoPlayEvent);
+      }, 1000);
     } else {
-      clearTimeout(autoplayTimer)
-      cancelAnimationFrame(autoplayFrame)
       // autoplayFrame =  requestAnimationFrame(autoPlayEvent)
     }
   }
-}
+};
 // 自動播放事件
 const autoPlayEvent: FrameRequestCallback = (time: DOMHighResTimeStamp) => {
-  disableTranstion.value = true
-  const delta = time - countTime
+  disableTranstion.value = true;
+  const delta = time - countTime;
   if (delta >= fpsTime) {
-    curDeg.value = Number(((curDeg.value - degFps.value) % 360).toFixed(2))
-    
-    countTime = time - (delta % fpsTime)
-    let degVal = Math.abs(Number((curDeg.value / baseDeg.value).toFixed(2)))
-    if (degVal % 1 <= 1) {
-      let index = Math.round(degVal)
-      let maxIndex = 360 / baseDeg.value - 1
-      curIndex.value = index > maxIndex ? 0 : index
-      // console.log((curDeg.value / baseDeg.value).toFixed(2), curIndex.value, baseDeg.value);
+    curDeg.value = Number(((curDeg.value - degFps.value) % 360).toFixed(2));
+    countTime = time - (delta % fpsTime);
+    let degVal = Number((curDeg.value / baseDeg.value).toFixed(2));
+    let degValAbs = Math.abs(degVal);
+    if (degValAbs % 1 <= 0.1 || degValAbs % 1 >= 0.9) {
+      let index = Math.round(degValAbs);
+      let maxIndex = 360 / baseDeg.value - 1;
+      if (degVal > 0) {
+        let i = index > maxIndex ? 0 : index;
+        curIndex.value = turnTableList.value.length - i;
+      } else {
+        curIndex.value = index > maxIndex ? 0 : index;
+      }
+      let nextDeg = Number((((curDeg.value - degFps.value) % 360) / baseDeg.value).toFixed(2));
+      let nextDegAbs = Math.abs(nextDeg);
+      if (
+        (nextDegAbs % 1 <= 0.1 && degValAbs % 1 >= 0.9) ||
+        (nextDegAbs % 1 >= 0.9 && degValAbs % 1 <= 0.1) ||
+        (nextDeg <= 0 && degVal > 0) ||
+        (nextDeg >= 0 && degVal < 0)
+      ) {
+        console.log(degValAbs, nextDegAbs);
+        /** 處理角度精度問題 */
+        curDeg.value = index * baseDeg.value * (curDeg.value / Math.abs(curDeg.value));
+        /** 停留时长 */
+        if (autoplay.value.stayTime > 0) {
+          return (autoplayWaitTimer = setTimeout(() => {
+            startAutoPlay(false);
+            autoplayFrame = requestAnimationFrame(autoPlayEvent);
+          }, autoplay.value.stayTime));
+        }
+      }
     } else {
       curIndex.value = -1;
     }
-
-    // if (Math.abs((curDeg.value) % baseDeg.value) >= 1 && Math.abs((curDeg.value) % baseDeg.value) <= (baseDeg.value - 1)) {
-    // } else {
-    // }
   }
-  autoplayFrame = requestAnimationFrame(autoPlayEvent)
-}
+  autoplayFrame = requestAnimationFrame(autoPlayEvent);
+};
 
 /** 转盘基础样式 */
 const turnTableStyle = computed(() => {
-  let radius = toCurPX(Number($props.radius))
-  let totalHeight = radius
-  let elementHeight = Number(turnTableList.value[0]?.dataset?.height || 0)
-  let elementWidth = Number(turnTableList.value[0]?.dataset?.width || 0)
+  let radius = toCurPX(Number($props.radius));
+  let totalHeight = radius;
+  let elementHeight = Number(turnTableList.value[0]?.dataset?.height || 0);
+  let elementWidth = Number(turnTableList.value[0]?.dataset?.width || 0);
   // 使用角度比例计算高度
-  let rotateRad = Math.abs((Number($props.rotateX) * Math.PI) / 180)
-  let scaleY = ((1 - Number($props.scale)) * elementHeight) / 2
-  let offsetY = toCurPX(Number($props.offsetY))
+  let rotateRad = Math.abs((Number($props.rotateX) * Math.PI) / 180);
+  let scaleY = ((1 - Number($props.scale)) * elementHeight) / 2;
+  let offsetY = toCurPX(Number($props.offsetY));
   if ($props.front) {
-    totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + 2 * (radius + (elementHeight - elementWidth) / 2) * Math.sin(rotateRad) + offsetY - scaleY
+    totalHeight =
+      elementHeight * (1 - Math.sin(rotateRad)) +
+      2 * (radius + (elementHeight - elementWidth) / 2) * Math.sin(rotateRad) +
+      offsetY -
+      scaleY;
   } else {
-    totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + (2 * radius + elementHeight) * Math.sin(rotateRad) + offsetY - scaleY
+    totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + (2 * radius + elementHeight) * Math.sin(rotateRad) + offsetY - scaleY;
   }
+  const perspective = $props.perspective !== false ? `${toCurPX(Number($props.perspective))}px` : 'none';
 
   return {
     '--height': `${totalHeight}px`,
@@ -352,29 +397,33 @@ const turnTableStyle = computed(() => {
     '--duration': `${$props.duration}ms`,
     '--offsetY': `${offsetY}px`,
     '--scaleY': `${scaleY / -2}px`,
-  }
-})
+    '--perspective': perspective,
+  };
+});
 /** 角度樣式 */
-const degStyle = ref<Record<string, any>>({})
+const degStyle = ref<Record<string, any>>({});
 /** 監聽角度變化 */
-watch(curDeg, () => {
-  degStyle.value['--deg'] = `${curDeg.value}deg`
-  degStyle.value['--degVal'] = `${curDeg.value <= 0 ? Math.abs(curDeg.value % 360) : 360 - (curDeg.value % 360)}`
-}, {immediate: true})
-
+watch(
+  curDeg,
+  () => {
+    degStyle.value['--deg'] = `${curDeg.value}deg`;
+    degStyle.value['--degVal'] = `${curDeg.value <= 0 ? Math.abs(curDeg.value % 360) : 360 - (curDeg.value % 360)}`;
+  },
+  { immediate: true }
+);
 
 /** 監聽索引變化 */
 watch(
   [curIndex, turnTableListEl],
   ([index, el]) => {
     if (el) {
-      let oldEl = el.querySelector(`.${$props.selectClassName}`)
+      let oldEl = el.querySelector(`.${$props.selectClassName}`);
       let newEl = el.children[index];
       if (oldEl) {
-        oldEl.classList.remove($props.selectClassName)
+        oldEl.classList.remove($props.selectClassName);
       }
       if (newEl) {
-        newEl.classList.add($props.selectClassName)
+        newEl.classList.add($props.selectClassName);
       }
       // list.map((item, i) => {
       //   if (i === index) {
@@ -384,39 +433,39 @@ watch(
       //   }
       // })
       if (index > -1) {
-        $emits('change', index)
+        $emits('change', index);
       }
     }
   },
   { immediate: true }
-)
+);
 
 /** 初始化 */
 function initEl() {
-  disableTranstion.value = true
-  turnTableList.value = Array.from(turnTableListEl.value.children)
-  curIndex.value = $props.initIndex
-  baseDeg.value = 360 / turnTableList.value.length
-  curDeg.value = curIndex.value * baseDeg.value * -1
+  disableTranstion.value = true;
+  turnTableList.value = Array.from(turnTableListEl.value.children);
+  curIndex.value = $props.initIndex;
+  baseDeg.value = 360 / turnTableList.value.length;
+  curDeg.value = curIndex.value * baseDeg.value * -1;
   turnTableList.value.forEach((item: HTMLDivElement, i) => {
-    let box = item.getBoundingClientRect()
-    let deg = i * baseDeg.value
-    item.dataset.baseDeg = String(deg)
-    item.dataset.height = String(box.height)
-    item.dataset.width = String(box.width)
-    item.style.setProperty('--baseDeg', `${deg}deg`)
-    item.style.setProperty('--width', `${toCurPX(Number($props.radius)) - box.width / 2}px`)
-    item.style.setProperty('--baseDegVal', `${deg}`)
-  })
+    let box = item.getBoundingClientRect();
+    let deg = i * baseDeg.value;
+    item.dataset.baseDeg = String(deg);
+    item.dataset.height = String(box.height);
+    item.dataset.width = String(box.width);
+    item.style.setProperty('--baseDeg', `${deg}deg`);
+    item.style.setProperty('--itemWidth', `${box.width / 2}px`);
+    item.style.setProperty('--baseDegVal', `${deg}`);
+  });
   /** 初始化樣式 */
   // initStyle()
   nextTick(() => {
-    disableTranstion.value = true
+    disableTranstion.value = true;
     if (turnTableList.value.length) {
-      ininted.value = true
+      ininted.value = true;
     }
-    startAutoPlay()
-  })
+    startAutoPlay();
+  });
 }
 
 /** 監聽插槽變化 */
@@ -424,54 +473,54 @@ watch(
   () => $slots.default?.(),
   (val) => {
     // 長度不變不初始化
-      let children = val?.[0]?.children;
+    let children = val?.[0]?.children;
     if (turnTableList.value?.length === children.length) {
-      return
+      return;
     }
     nextTick(() => {
-      initEl()
-    })
+      initEl();
+    });
   },
   { immediate: true }
-)
+);
 
 const turnNext = (anime = true) => {
-  let index = curIndex.value + 1
+  let index = curIndex.value + 1;
   if (index >= turnTableList.value.length) {
-    index = 0
+    index = 0;
   }
-  turnTableItem(index, anime)
-}
+  turnTableItem(index, anime);
+};
 
 const turnPrev = (anime = true) => {
-  let index = curIndex.value - 1
+  let index = curIndex.value - 1;
   if (index <= 0) {
-    index = turnTableList.value.length - 1
+    index = turnTableList.value.length - 1;
   }
-  turnTableItem(index, anime)
-}
+  turnTableItem(index, anime);
+};
 
 const trunToIndex = (index: number, anime = true) => {
   if (ininted.value) {
-    if (index < 0 || index >= turnTableList.value.length) return false
-    turnTableItem(index, anime)
+    if (index < 0 || index >= turnTableList.value.length) return false;
+    turnTableItem(index, anime);
   } else {
     let watchCb = watch(ininted, (val) => {
       if (val) {
-        if (index < 0 || index >= turnTableList.value.length) return false
-        turnTableItem(index, anime)
-        watchCb()
+        if (index < 0 || index >= turnTableList.value.length) return false;
+        turnTableItem(index, anime);
+        watchCb();
       }
-    })
+    });
   }
-}
+};
 
 defineExpose({
   initEl,
   turnNext,
   turnPrev,
   trunToIndex,
-})
+});
 </script>
 <style lang="scss">
 .turn_table {
@@ -489,7 +538,7 @@ defineExpose({
       transition: all var(--duration);
     }
     transform-style: preserve-3d;
-    // perspective: var(--perspective, none);
+    // perspective: calc(var(--perspective));
     perspective-origin: center center;
     width: var(--width);
     height: var(--height);
@@ -502,17 +551,18 @@ defineExpose({
       top: 50%;
       left: 50%;
       /** 中心向外 */
-
-      transform: translate3d(-50%, calc(var(--offsetY) * (var(--offsetZ) - 0.5) + -50% + var(--scaleY)), calc(var(--radius) * 2)) rotateX(var(--rotateX)) rotateY(calc(var(--deg) + var(--baseDeg)))
-        translate3d(0, 0, var(--radius)) rotateY(calc((var(--deg) + var(--baseDeg)) * -1)) rotateX(calc(var(--rotateX) * -1)) rotateY(calc(var(--deg) + var(--baseDeg)))
+      transform: translate3d(-50%, calc(var(--offsetY) * (var(--offsetZ) - 0.5) + -50% + var(--scaleY)), calc(var(--radius) * 2))
+        rotateX(var(--rotateX)) rotateY(calc(var(--deg) + var(--baseDeg))) translate3d(0, 0, var(--radius))
+        rotateY(calc((var(--deg) + var(--baseDeg)) * -1)) rotateX(calc(var(--rotateX) * -1)) rotateY(calc(var(--deg) + var(--baseDeg)))
         scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ))));
     }
     &.front {
       > *:not(.turn_table_center) {
         /** 面向前方 */
-        transform: translate3d(-50%, calc(var(--offsetY) * (var(--offsetZ) - 0.5) + -50% + var(--scaleY)), 0) rotateX(var(--rotateX)) rotateY(calc(var(--deg) + var(--baseDeg)))
-          translate3d(0, 0, var(--width)) rotateY(calc((var(--deg) + var(--baseDeg)) * -1)) rotateX(calc(var(--rotateX) * -1)) scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ))))
-          translate3d(0, 0, calc(var(--radius) * 2));
+        transform: translate3d(-50%, calc(var(--offsetY) * (var(--offsetZ) - 0.5) + -50% + var(--scaleY)), 0) rotateX(var(--rotateX))
+          rotateY(calc(var(--deg) + var(--baseDeg))) translate3d(0, 0, calc(var(--radius) - var(--itemWidth)))
+          rotateY(calc((var(--deg) + var(--baseDeg)) * -1)) rotateX(calc(var(--rotateX) * -1))
+          scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ)))) translate3d(0, 0, calc(var(--radius) * 2));
       }
     }
   }
