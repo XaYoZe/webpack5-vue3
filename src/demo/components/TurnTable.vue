@@ -26,15 +26,20 @@ const $emits = defineEmits({
   change: (index: number) => true,
 });
 
-type AutoPlay =
-  | boolean
-  | number
-  | {
-      /** 自动旋转, 毫秒, 可负值 */
-      duration?: number;
-      /** 停留时间, 毫秒 */
-      stayTime?: number;
-    };
+type AutoPlay = {
+  /** 自动旋转, 毫秒, 可负值 */
+  duration?: number;
+  /** 停留时间, 毫秒 */
+  stayTime?: number;
+};
+type Perspective = {
+  /** 透视距离 */
+  distance: number | string;
+  /** 透视中心 */
+  originY: string | number;
+  /** 转轮z轴偏移 */
+  offsetZ: number | string;
+};
 
 const $props = withDefaults(
   defineProps<{
@@ -51,7 +56,7 @@ const $props = withDefaults(
     /** 过渡時長, 毫秒 */
     duration?: string | number;
     /** 自动旋转, 毫秒, 可负值 */
-    autoplay?: AutoPlay;
+    autoplay?: AutoPlay | boolean | number;
     /** 上下偏移, 像素 */
     offsetY?: string | number;
     /** 初始化索引 */
@@ -61,7 +66,7 @@ const $props = withDefaults(
     /** 选中时样式名 */
     selectClassName?: string;
     /** 透视距离 */
-    perspective?: string | number | false;
+    perspective?: Perspective | number | false;
     /** 可点击 */
     click?: boolean;
     /** 可拖动 */
@@ -154,7 +159,6 @@ const turnTableItemClick = (event: MouseEvent & TouchEvent) => {
   if (deboundClick) return;
   deboundClick = true;
   setTimeout(() => {
-    console.log('turnTableItemClick setTimeout', deboundClick, moveLimit.isMove);
     deboundClick = false;
   }, 200);
   startAutoPlay(false);
@@ -281,7 +285,6 @@ const touchendEvent = (event: TouchEvent & MouseEvent) => {
       turnTableItemClick(event);
       return;
     }
-    console.log('no move');
   }
 };
 
@@ -293,7 +296,7 @@ const autoplay = computed(() => {
     stayTime: 500,
   };
   if (typeof $props.autoplay === 'boolean') {
-    obj.duration = 10000;
+    obj.duration = $props.autoplay ? 10000 : 0;
   } else if (typeof $props.autoplay === 'number') {
     obj.duration = $props.autoplay;
   } else if (typeof $props.autoplay === 'object') {
@@ -301,6 +304,12 @@ const autoplay = computed(() => {
   }
   return obj;
 });
+watch(autoplay, (val) => {
+  startAutoPlay(false);
+  if (val.duration !== 0) {
+    startAutoPlay(true);
+  }
+})
 const fps = 60;
 const fpsTime = 1000 / fps;
 const degFps = computed(() => (360 / autoplay.value.duration) * fpsTime);
@@ -309,10 +318,10 @@ let autoplayTimer: ReturnType<typeof setTimeout> = null;
 let autoplayWaitTimer: ReturnType<typeof setTimeout> = null;
 
 const startAutoPlay = (flag = true) => {
+  clearTimeout(autoplayTimer);
+  clearTimeout(autoplayWaitTimer);
+  cancelAnimationFrame(autoplayFrame);
   if ($props.autoplay) {
-    clearTimeout(autoplayTimer);
-    clearTimeout(autoplayWaitTimer);
-    cancelAnimationFrame(autoplayFrame);
     if (flag) {
       autoplayTimer = setTimeout(() => {
         autoplayFrame = requestAnimationFrame(autoPlayEvent);
@@ -348,7 +357,6 @@ const autoPlayEvent: FrameRequestCallback = (time: DOMHighResTimeStamp) => {
         (nextDeg <= 0 && degVal > 0) ||
         (nextDeg >= 0 && degVal < 0)
       ) {
-        console.log(degValAbs, nextDegAbs);
         /** 處理角度精度問題 */
         curDeg.value = index * baseDeg.value * (curDeg.value / Math.abs(curDeg.value));
         /** 停留时长 */
@@ -366,6 +374,27 @@ const autoPlayEvent: FrameRequestCallback = (time: DOMHighResTimeStamp) => {
   autoplayFrame = requestAnimationFrame(autoPlayEvent);
 };
 
+const perspective = computed(() => {
+  let perspectiveObj: Perspective = {
+    distance: 'none',
+    originY: 'center',
+    offsetZ: '0px',
+  };
+  if (typeof $props.perspective === 'object') {
+    let originY = $props.perspective.originY;
+    if (typeof originY === 'number') {
+      originY = `${toCurPX(originY)}px`;
+    }
+    perspectiveObj = Object.assign(perspectiveObj, {
+      distance: `${toCurPX($props.perspective.distance as number)}px`,
+      originY: originY,
+      offsetZ: `${toCurPX($props.perspective.offsetZ as number)}px`,
+    });
+  } else if (typeof $props.perspective === 'number') {
+    perspectiveObj.distance = `${toCurPX($props.perspective)}px`;
+  }
+  return perspectiveObj;
+});
 /** 转盘基础样式 */
 const turnTableStyle = computed(() => {
   let radius = toCurPX(Number($props.radius));
@@ -385,7 +414,6 @@ const turnTableStyle = computed(() => {
   } else {
     totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + (2 * radius + elementHeight) * Math.sin(rotateRad) + offsetY - scaleY;
   }
-  const perspective = $props.perspective !== false ? `${toCurPX(Number($props.perspective))}px` : 'none';
 
   return {
     '--height': `${totalHeight}px`,
@@ -397,7 +425,9 @@ const turnTableStyle = computed(() => {
     '--duration': `${$props.duration}ms`,
     '--offsetY': `${offsetY}px`,
     '--scaleY': `${scaleY / -2}px`,
-    '--perspective': perspective,
+    '--perspective': perspective.value.distance,
+    '--perspectiveOrigin': `center ${perspective.value.originY}`,
+    '--offsetZ': perspective.value.offsetZ,
   };
 });
 /** 角度樣式 */
@@ -538,31 +568,35 @@ defineExpose({
       transition: all var(--duration);
     }
     transform-style: preserve-3d;
-    // perspective: calc(var(--perspective));
-    perspective-origin: center center;
+    perspective: var(--perspective);
+    perspective-origin: var(--perspectiveOrigin, center center);
     width: var(--width);
     height: var(--height);
     > *:not(.turn_table_center) {
       --degAbs: max(calc(var(--baseDegVal) - var(--degVal)), calc(var(--degVal) - var(--baseDegVal)));
       --dRing: min(var(--degAbs), 360 - var(--degAbs));
-      --offsetZ: calc(1 - var(--dRing) / 180);
-      opacity: calc(var(--opacity) + ((1 - var(--opacity)) * var(--offsetZ)));
+      --scaleZ: calc(1 - var(--dRing) / 180);
+      opacity: calc(var(--opacity) + ((1 - var(--opacity)) * var(--scaleZ)));
       position: absolute;
       top: 50%;
       left: 50%;
       /** 中心向外 */
-      transform: translate3d(-50%, calc(var(--offsetY) * (var(--offsetZ) - 0.5) + -50% + var(--scaleY)), calc(var(--radius) * 2))
+      transform: translate3d(
+          -50%,
+          calc(var(--offsetY) * (var(--scaleZ) - 0.5) + -50% + var(--scaleY)),
+          calc(var(--radius) * 2 + var(--offsetZ, 0))
+        )
         rotateX(var(--rotateX)) rotateY(calc(var(--deg) + var(--baseDeg))) translate3d(0, 0, var(--radius))
         rotateY(calc((var(--deg) + var(--baseDeg)) * -1)) rotateX(calc(var(--rotateX) * -1)) rotateY(calc(var(--deg) + var(--baseDeg)))
-        scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ))));
+        scale(calc(var(--scale) + ((1 - var(--scale)) * var(--scaleZ))));
     }
     &.front {
       > *:not(.turn_table_center) {
         /** 面向前方 */
-        transform: translate3d(-50%, calc(var(--offsetY) * (var(--offsetZ) - 0.5) + -50% + var(--scaleY)), 0) rotateX(var(--rotateX))
+        transform: translate3d(-50%, calc(var(--offsetY) * (var(--scaleZ) - 0.5) + -50% + var(--scaleY)), 0) rotateX(var(--rotateX))
           rotateY(calc(var(--deg) + var(--baseDeg))) translate3d(0, 0, calc(var(--radius) - var(--itemWidth)))
           rotateY(calc((var(--deg) + var(--baseDeg)) * -1)) rotateX(calc(var(--rotateX) * -1))
-          scale(calc(var(--scale) + ((1 - var(--scale)) * var(--offsetZ)))) translate3d(0, 0, calc(var(--radius) * 2));
+          scale(calc(var(--scale) + ((1 - var(--scale)) * var(--scaleZ)))) translate3d(0, 0, calc(var(--radius) * 2 + var(--offsetZ, 0)));
       }
     }
   }
@@ -571,7 +605,7 @@ defineExpose({
     // top: 50%;
     // left: 50%;
     // transform: translate3d(-50%, -50%, 0);
-    transform: translate3d(0, 0, calc(var(--radius) * 2));
+    transform: translate3d(0, 0, calc(var(--radius) * 2 + var(--offsetZ, 0)));
   }
 }
 </style>
