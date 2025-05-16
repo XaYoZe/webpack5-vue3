@@ -1,6 +1,6 @@
 <template>
   <div
-    class="turn_table"
+    class="turntable"
     @touchstart="touchstartEvent"
     @touchmove="touchmoveEvent"
     @touchend="touchendEvent"
@@ -10,10 +10,10 @@
     @mouseleave="touchendEvent"
     :style="turnTableStyle"
   >
-    <div class="turn_table_list" ref="turnTableListEl" :class="[{ transition: !disableTranstion, front }]" :style="degStyle">
+    <div class="turntable_list" ref="turnTableListEl" :class="[{ transition: !disableTranstion, front }]" :style="degStyle">
       <slot></slot>
     </div>
-    <div class="turn_table_center" v-if="$slots.center">
+    <div class="turntable_center" v-if="$slots.center">
       <slot name="center"></slot>
     </div>
   </div>
@@ -26,12 +26,23 @@ const $emits = defineEmits({
   change: (index: number) => true,
 });
 
+enum TouchState {
+  /** 未开始 */
+  none,
+  /** 开始 */ 
+  start,
+  /** 移动 */
+  move,
+}
+
+/** 自动播放对象 */
 type AutoPlay = {
   /** 自动旋转, 毫秒, 可负值 */
   duration?: number;
   /** 停留时间, 毫秒 */
   stayTime?: number;
 };
+/** 透视对象 */
 type Perspective = {
   /** 透视距离 */
   distance: number | string;
@@ -92,7 +103,7 @@ const $props = withDefaults(
     /** 设计宽度 */
     designWidth: 750,
     /** 选中时样式名 */
-    selectClassName: 'turn_table_item_active',
+    selectClassName: 'turntable_item_active',
     /** 透视距离 */
     perspective: false,
     /** 可点击 */
@@ -398,19 +409,20 @@ const perspective = computed(() => {
 /** 转盘基础样式 */
 const turnTableStyle = computed(() => {
   let radius = toCurPX(Number($props.radius));
+  let baseRotateX = Math.abs(Number($props.rotateX)) / Number( $props.rotateX) || 1;
   let totalHeight = radius;
   let elementHeight = Number(turnTableList.value[0]?.dataset?.height || 0);
   let elementWidth = Number(turnTableList.value[0]?.dataset?.width || 0);
   // 使用角度比例计算高度
   let rotateRad = Math.abs((Number($props.rotateX) * Math.PI) / 180);
-  let scaleY = ((1 - Number($props.scale)) * elementHeight) / 2;
+  let scaleY = ((1 - Number($props.scale)) * elementHeight) / 2 * - baseRotateX;
   let offsetY = toCurPX(Number($props.offsetY));
   if ($props.front) {
     totalHeight =
       elementHeight * (1 - Math.sin(rotateRad)) +
       2 * (radius + (elementHeight - elementWidth) / 2) * Math.sin(rotateRad) +
       offsetY -
-      scaleY;
+      Math.abs(scaleY);
   } else {
     totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + (2 * radius + elementHeight) * Math.sin(rotateRad) + offsetY - scaleY;
   }
@@ -553,7 +565,7 @@ defineExpose({
 });
 </script>
 <style lang="scss">
-.turn_table {
+.turntable {
   position: relative;
   transform-style: preserve-3d;
   width: 100%;
@@ -563,7 +575,7 @@ defineExpose({
   justify-content: center;
   // width: var(--width);
   // height: var(--height);
-  .turn_table_list {
+  .turntable_list {
     &.transition > * {
       transition: all var(--duration);
     }
@@ -572,7 +584,7 @@ defineExpose({
     perspective-origin: var(--perspectiveOrigin, center center);
     width: var(--width);
     height: var(--height);
-    > *:not(.turn_table_center) {
+    > *:not(.turntable_center) {
       --degAbs: max(calc(var(--baseDegVal) - var(--degVal)), calc(var(--degVal) - var(--baseDegVal)));
       --dRing: min(var(--degAbs), 360 - var(--degAbs));
       --scaleZ: calc(1 - var(--dRing) / 180);
@@ -591,7 +603,7 @@ defineExpose({
         scale(calc(var(--scale) + ((1 - var(--scale)) * var(--scaleZ))));
     }
     &.front {
-      > *:not(.turn_table_center) {
+      > *:not(.turntable_center) {
         /** 面向前方 */
         transform: translate3d(-50%, calc(var(--offsetY) * (var(--scaleZ) - 0.5) + -50% + var(--scaleY)), 0) rotateX(var(--rotateX))
           rotateY(calc(var(--deg) + var(--baseDeg))) translate3d(0, 0, calc(var(--radius) - var(--itemWidth)))
@@ -600,7 +612,7 @@ defineExpose({
       }
     }
   }
-  .turn_table_center {
+  .turntable_center {
     position: absolute;
     // top: 50%;
     // left: 50%;
