@@ -140,7 +140,7 @@ const perspective = reactive({
 
 <style lang="scss" scoped>
 .turntable_demo {
-  wdith: 100%;
+  width: 100%;
   padding: 20px 10px 0;
   .panel_title {
     font-size: 18px;
