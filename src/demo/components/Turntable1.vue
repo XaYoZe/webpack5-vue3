@@ -120,7 +120,7 @@ const toCurPX = (num: number) => {
 // slot 列表
 const turnTableList = ref<HTMLDivElement[]>([]);
 // 容器元素
-const turnTableListEl = ref(null);
+const turnTableListEl = ref<HTMLDivElement>(null);
 // 當前索引
 const curIndex = ref($props.initIndex);
 // 轉動基礎角度
@@ -206,7 +206,6 @@ let moveLimit = {
 };
 // 按下事件
 const touchstartEvent = (event: TouchEvent & MouseEvent) => {
-  if (!$props.draggable) return;
   let touchItem = event.changedTouches?.length ? event.changedTouches[0] : { screenX: event.screenX, screenY: event.screenY };
   prevScreenX = touchItem.screenX;
   moveLimit.touchX = touchItem.screenX;
@@ -250,10 +249,11 @@ const touchmoveEvent = (event: TouchEvent & MouseEvent) => {
 };
 // 彈起事件
 const touchendEvent = (event: TouchEvent & MouseEvent) => {
-  if (!moveLimit.isStart || !$props.draggable) return;
+  if (!moveLimit.isStart) return;
   let touchItem = event.changedTouches?.length ? event.changedTouches[0] : { screenX: event.screenX, screenY: event.screenY };
   moveLimit.isStart = false;
   if (moveLimit.isMove) {
+    if (!$props.draggable) return;
     moveLimit.isMove = false;
     disableTranstion.value = false;
     prevScreenX = 0;
@@ -393,8 +393,9 @@ const perspective = computed(() => {
   };
   if (typeof $props.perspective === 'object') {
     let originY = $props.perspective.originY;
-    if (typeof originY === 'number') {
-      originY = `${toCurPX(originY)}px`;
+    console.log();
+    if (!isNaN(Number(originY))) {
+      originY = `${toCurPX(Number(originY))}px`;
     }
     perspectiveObj = Object.assign(perspectiveObj, {
       distance: `${toCurPX($props.perspective.distance as number)}px`,
@@ -421,8 +422,7 @@ const turnTableStyle = computed(() => {
     totalHeight =
       elementHeight * (1 - Math.sin(rotateRad)) +
       2 * (radius + (elementHeight - elementWidth) / 2) * Math.sin(rotateRad) +
-      offsetY -
-      Math.abs(scaleY);
+      Math.abs(offsetY) - Math.abs(scaleY);
   } else {
     totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + (2 * radius + elementHeight) * Math.sin(rotateRad) + offsetY - scaleY;
   }
@@ -485,7 +485,7 @@ watch(
 /** 初始化 */
 function initEl() {
   disableTranstion.value = true;
-  turnTableList.value = Array.from(turnTableListEl.value.children);
+  turnTableList.value = Array.from((turnTableListEl.value?.children || [])as HTMLCollectionOf<HTMLDivElement>);
   curIndex.value = $props.initIndex;
   baseDeg.value = 360 / turnTableList.value.length;
   curDeg.value = curIndex.value * baseDeg.value * -1;
@@ -514,6 +514,7 @@ function initEl() {
 watch(
   () => $slots.default?.(),
   (val) => {
+    if(!val) return;
     // 長度不變不初始化
     let children = val?.[0]?.children;
     if (turnTableList.value?.length === children.length) {
@@ -564,7 +565,7 @@ defineExpose({
   trunToIndex,
 });
 </script>
-<style lang="scss">
+<style lang="scss" scoped>
 .turntable {
   position: relative;
   transform-style: preserve-3d;
@@ -575,7 +576,7 @@ defineExpose({
   justify-content: center;
   // width: var(--width);
   // height: var(--height);
-  .turntable_list {
+  ::v-deep(.turntable_list) {
     &.transition > * {
       transition: all var(--duration);
     }

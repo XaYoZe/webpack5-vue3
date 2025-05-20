@@ -3,6 +3,15 @@
     <div class="panel_title">參數調整</div>
     <div class="panel_content">
       <div class="row">
+        <span>面朝前方</span><button @click="front = !front">{{ front }}</button>
+      </div>
+      <div class="row">
+        <span>可點擊</span><button @click="click = !click">{{ click }}</button>
+      </div>
+      <div class="row">
+        <span>可拖動</span><button @click="draggable = !draggable">{{ draggable }}</button>
+      </div>
+      <div class="row">
         <span>半径: </span>
         <input type="range" id="volume" name="volume" min="0" max="400" v-model="radius" />
         <span>{{ radius }}</span>
@@ -11,9 +20,6 @@
         <span>上下偏移: </span>
         <input type="range" id="volume" name="volume" min="-400" max="400" v-model="offsetY" />
         <span>{{ offsetY }}</span>
-      </div>
-      <div class="row">
-        <span>面朝前方</span><button @click="front = !front">{{ front }}</button>
       </div>
       <div class="row">
         <span>X轴角度: </span>
@@ -64,30 +70,34 @@
     </div>
     <div class="panel_title">效果預覽</div>
     <div class="panel_content demo_box">
-      <Turntable
-        ref="truntable"
-        class="turntable_box"
-        click
-        draggable
-        :radius="radius"
-        :designWidth="false"
-        :rotateX="rotateX"
-        :scale="scale"
-        :front="front"
-        :opacity="opacity"
-        :offsetY="offsetY"
-        :autoplay="showAutoPlay && autoplay"
-        :duration="duration"
-        :perspective="showPerspective && perspective"
-      >
-        <div class="turntable_item" v-for="i in 10" :key="i">{{ i }}</div>
-        <template #center>
-          <div class="center_line"></div>
-        </template>
-      </Turntable>
+      <ClientOnly>
+        <Turntable
+          ref="truntable"
+          class="turntable_box"
+          :click="click"
+          :draggable="draggable"
+          :radius="radius"
+          :designWidth="false"
+          :rotateX="rotateX"
+          :scale="scale"
+          :front="front"
+          :opacity="opacity"
+          :offsetY="offsetY"
+          :autoplay="showAutoPlay && autoplay"
+          :duration="duration"
+          :perspective="showPerspective && perspective"
+        >
+          <div class="turntable_item" v-for="i in 10" :key="i">{{ i }}</div>
+          <template #center>
+            <div class="center_line"></div>
+          </template>
+        </Turntable>
+      </ClientOnly>
     </div>
     <div class="panel_title">props參數</div>
     <div class="panel_content props_list">
+      <div class="props_item" v-if="click"><span style="color: #a6e22e">click</span></div>
+      <div class="props_item" v-if="draggable"><span style="color: #a6e22e">draggable</span></div>
       <div class="props_item" v-if="front"><span style="color: #a6e22e">front</span></div>
       <div class="props_item" v-if="rotateX !== 0">:<span style="color: #a6e22e">rotateX</span>="{{ rotateX }}"</div>
       <div class="props_item" v-if="radius !== 375">:<span style="color: #a6e22e">radius</span>="{{ radius }}"</div>
@@ -103,16 +113,20 @@
 <script setup>
 import { ref, reactive } from 'vue';
 
+import { ref, reactive } from 'vue';
+import Turntable from './index.vue';
+
 const front = ref(true);
 const truntable = ref(null);
-const rotateX = ref(0);
+const rotateX = ref(-45);
 const radius = ref(250);
 const scale = ref(1);
 const opacity = ref(1);
 const offsetY = ref(0);
 const duration = ref(300);
 const perspectiveOrigin = ref(0);
-
+const click = ref(true);
+const draggable = ref(true);
 const showAutoPlay = ref(false);
 const autoplay = ref({
   duration: 10000,
