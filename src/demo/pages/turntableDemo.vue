@@ -113,9 +113,6 @@
 <script setup>
 import { ref, reactive } from 'vue';
 
-import { ref, reactive } from 'vue';
-import Turntable from './index.vue';
-
 const front = ref(true);
 const truntable = ref(null);
 const rotateX = ref(-45);
