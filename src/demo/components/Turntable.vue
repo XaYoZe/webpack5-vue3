@@ -422,9 +422,13 @@ const turnTableStyle = computed(() => {
     totalHeight =
       elementHeight * (1 - Math.sin(rotateRad)) +
       2 * (radius + (elementHeight - elementWidth) / 2) * Math.sin(rotateRad) +
-      Math.abs(offsetY) - Math.abs(scaleY);
+      (Number($props.rotateX) <= 0 ? offsetY : -offsetY) - Math.abs(scaleY);
   } else {
-    totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + (2 * radius + elementHeight) * Math.sin(rotateRad) + offsetY - scaleY;
+    totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + (2 * radius + elementHeight) * Math.sin(rotateRad) + (Number($props.rotateX) <= 0 ? offsetY : -offsetY) - scaleY;
+  }
+
+  if (totalHeight < elementHeight) {
+    totalHeight = elementHeight * 2 - totalHeight;
   }
 
   return {
@@ -589,7 +593,7 @@ defineExpose({
       --degAbs: max(calc(var(--baseDegVal) - var(--degVal)), calc(var(--degVal) - var(--baseDegVal)));
       --dRing: min(var(--degAbs), 360 - var(--degAbs));
       --scaleZ: calc(1 - var(--dRing) / 180);
-      opacity: calc(var(--opacity) + ((1 - var(--opacity)) * var(--scaleZ)));
+      opacity: calc(var(--scaleZ) + (1 - var(--scaleZ)) * var(--opacity));
       position: absolute;
       top: 50%;
       left: 50%;
