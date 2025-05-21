@@ -26,14 +26,14 @@ const $emits = defineEmits({
   change: (index: number) => true,
 });
 
-enum TouchState {
-  /** 未开始 */
-  none,
-  /** 开始 */ 
-  start,
-  /** 移动 */
-  move,
-}
+type Draggable = {
+  /** 摩擦, 越小慣性越大, 默認0.1 */
+  friction: number;
+  /** 最小速度, 大於0, 默認0.1 */
+  minVelocity: number;
+  /** 拖動最大角度, 默認180 */
+  widthDeg: number;
+};
 
 /** 自动播放对象 */
 type AutoPlay = {
@@ -81,7 +81,7 @@ const $props = withDefaults(
     /** 可点击 */
     click?: boolean;
     /** 可拖动 */
-    draggable?: boolean;
+    draggable?: boolean | Draggable;
   }>(),
   {
     // 縮放
@@ -131,6 +131,16 @@ const curDeg = ref(curIndex.value * baseDeg.value * -1);
 const disableTranstion = ref(false);
 // 是否初始化完畢
 const ininted = ref(false);
+
+let remainderDegTimer: ReturnType<typeof setTimeout> = null;
+// 重新計算角度
+const resetDeg = () => {
+  clearTimeout(remainderDegTimer);
+  remainderDegTimer = setTimeout(() => {
+    disableTranstion.value = true;
+    curDeg.value = curDeg.value % 360;
+  }, Number($props.duration));
+};
 // 滾動到指定索引
 const turnTableItem = (index: number, anime = true) => {
   disableTranstion.value = !anime;
@@ -151,21 +161,11 @@ const turnTableItem = (index: number, anime = true) => {
   });
 };
 
-let remainderDegTimer: ReturnType<typeof setTimeout> = null;
-// 重新計算角度
-const resetDeg = () => {
-  clearTimeout(remainderDegTimer);
-  remainderDegTimer = setTimeout(() => {
-    disableTranstion.value = true;
-    curDeg.value = curDeg.value % 360;
-  }, Number($props.duration));
-};
-
 // 點擊轉盤元素
 let deboundClick = false;
 let clickAutoPlayTime: ReturnType<typeof setTimeout> = null;
 const turnTableItemClick = (event: MouseEvent & TouchEvent) => {
-  if (!$props.click || moveLimit.isMove) return;
+  if (!$props.click || moveData.isMove) return;
   if (event.target === turnTableListEl.value) return;
   if (deboundClick) return;
   deboundClick = true;
@@ -191,57 +191,148 @@ const turnTableItemClick = (event: MouseEvent & TouchEvent) => {
   // event.stopPropagation()
 };
 
-// 拖動x坐標
-let prevScreenX = 0;
-// 拖動距離
-let moveValue = 0;
+//
+//
 // 拖動限制
-let moveLimit = {
+let moveData = {
   touchX: 0,
   touchY: 0,
   moveX: 0,
   moveY: 0,
+  /** 拖動x坐標 */
+  prevScreenX: 0,
+  /** 拖動距離 */
+  moveValue: 0,
   isMove: false,
   isStart: false,
+  /** X轴速度 */
+  velocity: 0,
+  moveTime: 0,
+  lastTime: 0,
 };
+
+/** 拖動配置項 */
+const draggable = computed(() => {
+  let obj = {
+    /** 是否可拖動 */
+    draggable: false,
+    /** 摩擦系数 */
+    friction: 0.1,
+    /** 最小速度 */
+    minVelocity: 0.1,
+    /** 移动距离 */
+    widthDeg: 180,
+  };
+  if (typeof $props.draggable === 'boolean') {
+    obj.draggable = $props.draggable;
+  } else {
+    obj = Object.assign(obj, $props.draggable);
+  }
+  return obj;
+});
+
+const snapToNearestIndex = () => {
+  // const normalizedDeg = ((curDeg.value % 360) + 360) % 360
+  // const targetIndex = Math.round(normalizedDeg / baseDeg.value) % turnTableList.value.length
+  // turnTableItem(targetIndex)
+
+  let index = 0;
+  nextTick(() => {
+    // 根據當前角度判斷
+    if (curDeg.value < 0) {
+      // 限制邏輯
+      // if (Math.abs(curDeg.value) >= (turnTableList.value.length - 1) * baseDeg.value) {
+      //   curDeg.value = (turnTableList.value.length - 1) * baseDeg.value * -1
+      // } else
+      if (Math.abs(curDeg.value % baseDeg.value) <= baseDeg.value / 2) {
+        curDeg.value += Math.abs(curDeg.value % baseDeg.value);
+      } else {
+        curDeg.value -= baseDeg.value - Math.abs(curDeg.value % baseDeg.value);
+      }
+      index = Math.abs((curDeg.value % 360) / baseDeg.value);
+    } else {
+      // 限制邏輯
+      // if (Math.abs(curDeg.value) > 0) {
+      // curDeg.value = 0
+      // } else if (curDeg.value >= turnTableList.value.length * baseDeg.value) {
+      //   curDeg.value = turnTableList.value.length * baseDeg.value
+      // } else {
+      if (Math.abs(curDeg.value % baseDeg.value) <= baseDeg.value / 2) {
+        curDeg.value -= Math.abs(curDeg.value % baseDeg.value);
+      } else {
+        curDeg.value += baseDeg.value - Math.abs(curDeg.value % baseDeg.value);
+      }
+      // }
+      index = curDeg.value === 0 ? 0 : 360 / baseDeg.value - Math.abs((curDeg.value % 360) / baseDeg.value);
+    }
+    /** 處理精度問題 */
+    curIndex.value = Math.round(index % turnTableList.value.length);
+    startAutoPlay();
+  });
+};
+
+let prevAnimateInertiaTimer = 0;
+const animateInertia = (timer: number = 0) => {
+  if (timer - prevAnimateInertiaTimer >= moveData.moveTime) {
+    if (Math.abs(moveData.velocity) > draggable.value.minVelocity) {
+      curDeg.value += moveData.velocity;
+      moveData.velocity *= 1 - draggable.value.friction;
+    } else {
+      snapToNearestIndex();
+      return;
+    }
+  }
+  requestAnimationFrame(animateInertia);
+  prevAnimateInertiaTimer = timer;
+};
+
 // 按下事件
 const touchstartEvent = (event: TouchEvent & MouseEvent) => {
   let touchItem = event.changedTouches?.length ? event.changedTouches[0] : { screenX: event.screenX, screenY: event.screenY };
-  prevScreenX = touchItem.screenX;
-  moveLimit.touchX = touchItem.screenX;
-  moveLimit.touchY = touchItem.screenY;
-  moveLimit.moveX = 0;
-  moveLimit.moveY = 0;
-  moveLimit.isStart = true;
+  moveData.prevScreenX = touchItem.screenX;
+  moveData.touchX = touchItem.screenX;
+  moveData.touchY = touchItem.screenY;
+  moveData.moveX = 0;
+  moveData.moveY = 0;
+  moveData.isStart = true;
+  moveData.lastTime = Date.now();
 };
 // 拖動事件
 const touchmoveEvent = (event: TouchEvent & MouseEvent) => {
-  if (!moveLimit.isStart || !$props.draggable) return;
+  if (!moveData.isStart || !draggable.value.draggable) return;
   let touchItem = event.changedTouches?.length ? event.changedTouches[0] : { screenX: event.screenX, screenY: event.screenY };
   // 計算移動距離
-  moveLimit.moveX = touchItem.screenX - moveLimit.touchX;
-  moveLimit.moveY = touchItem.screenY - moveLimit.touchY;
+  moveData.moveX = touchItem.screenX - moveData.touchX;
+  moveData.moveY = touchItem.screenY - moveData.touchY;
   // 判斷是否為拖動
-  if (!moveLimit.isMove) {
-    if (moveLimit.moveX >= 0 && moveLimit.moveX < Math.abs(moveLimit.moveY)) {
+  if (!moveData.isMove) {
+    if (moveData.moveX >= 0 && moveData.moveX < Math.abs(moveData.moveY)) {
       return;
-    } else if (moveLimit.moveX < 0 && Math.abs(moveLimit.moveX) < Math.abs(moveLimit.moveY)) {
+    } else if (moveData.moveX < 0 && Math.abs(moveData.moveX) < Math.abs(moveData.moveY)) {
       return;
     }
     /** 清除自动播放 */
     startAutoPlay(false);
   }
   // 正在拖動
-  moveLimit.isMove = true;
+  moveData.isMove = true;
   disableTranstion.value = true;
   curIndex.value = -1;
-  if (prevScreenX === 0) {
-    moveValue = 0;
+  if (moveData.prevScreenX === 0) {
+    moveData.moveValue = 0;
   } else {
-    moveValue = touchItem.screenX - prevScreenX;
-    curDeg.value += (180 / toCurPX(Number($props.radius) * 2)) * moveValue;
+    moveData.moveValue = touchItem.screenX - moveData.prevScreenX;
+    curDeg.value += (draggable.value.widthDeg / toCurPX(Number($props.radius) * 2)) * moveData.moveValue;
   }
-  prevScreenX = touchItem.screenX;
+
+  /** 計算減速 */
+  const now = Date.now();
+  moveData.moveTime = now - moveData.lastTime;
+  moveData.velocity = (touchItem.screenX - moveData.prevScreenX) / moveData.moveTime;
+  moveData.lastTime = now;
+
+  moveData.prevScreenX = touchItem.screenX;
+
   if (event.cancelable) {
     event.preventDefault();
   }
@@ -249,50 +340,19 @@ const touchmoveEvent = (event: TouchEvent & MouseEvent) => {
 };
 // 彈起事件
 const touchendEvent = (event: TouchEvent & MouseEvent) => {
-  if (!moveLimit.isStart) return;
+  if (!moveData.isStart) return;
   let touchItem = event.changedTouches?.length ? event.changedTouches[0] : { screenX: event.screenX, screenY: event.screenY };
-  moveLimit.isStart = false;
-  if (moveLimit.isMove) {
-    if (!$props.draggable) return;
-    moveLimit.isMove = false;
+  moveData.isStart = false;
+  if (moveData.isMove) {
+    if (!draggable.value.draggable) return;
+    moveData.isMove = false;
     disableTranstion.value = false;
-    prevScreenX = 0;
-    moveValue = 0;
-    let index = 0;
-    nextTick(() => {
-      // 根據當前角度判斷
-      if (curDeg.value < 0) {
-        // 限制邏輯
-        // if (Math.abs(curDeg.value) >= (turnTableList.value.length - 1) * baseDeg.value) {
-        //   curDeg.value = (turnTableList.value.length - 1) * baseDeg.value * -1
-        // } else
-        if (Math.abs(curDeg.value % baseDeg.value) <= baseDeg.value / 2) {
-          curDeg.value += Math.abs(curDeg.value % baseDeg.value);
-        } else {
-          curDeg.value -= baseDeg.value - Math.abs(curDeg.value % baseDeg.value);
-        }
-        index = Math.abs((curDeg.value % 360) / baseDeg.value);
-      } else {
-        // 限制邏輯
-        // if (Math.abs(curDeg.value) > 0) {
-        // curDeg.value = 0
-        // } else if (curDeg.value >= turnTableList.value.length * baseDeg.value) {
-        //   curDeg.value = turnTableList.value.length * baseDeg.value
-        // } else {
-        if (Math.abs(curDeg.value % baseDeg.value) <= baseDeg.value / 2) {
-          curDeg.value -= Math.abs(curDeg.value % baseDeg.value);
-        } else {
-          curDeg.value += baseDeg.value - Math.abs(curDeg.value % baseDeg.value);
-        }
-        // }
-        index = curDeg.value === 0 ? 0 : 360 / baseDeg.value - Math.abs((curDeg.value % 360) / baseDeg.value);
-      }
-      /** 處理精度問題 */
-      curIndex.value = Math.round(index % turnTableList.value.length);
-      startAutoPlay();
-    });
+    moveData.prevScreenX = 0;
+    moveData.moveValue = 0;
+    animateInertia();
+    return;
   } else {
-    if (Math.abs(touchItem.screenX - moveLimit.touchX) < 10 && Math.abs(touchItem.screenY - moveLimit.touchY) < 10) {
+    if (Math.abs(touchItem.screenX - moveData.touchX) < 10 && Math.abs(touchItem.screenY - moveData.touchY) < 10) {
       turnTableItemClick(event);
       return;
     }
@@ -320,7 +380,7 @@ watch(autoplay, (val) => {
   if (val.duration !== 0) {
     startAutoPlay(true);
   }
-})
+});
 const fps = 60;
 const fpsTime = 1000 / fps;
 const degFps = computed(() => (360 / autoplay.value.duration) * fpsTime);
@@ -410,21 +470,26 @@ const perspective = computed(() => {
 /** 转盘基础样式 */
 const turnTableStyle = computed(() => {
   let radius = toCurPX(Number($props.radius));
-  let baseRotateX = Math.abs(Number($props.rotateX)) / Number( $props.rotateX) || 1;
+  let baseRotateX = Math.abs(Number($props.rotateX)) / Number($props.rotateX) || 1;
   let totalHeight = radius;
   let elementHeight = Number(turnTableList.value[0]?.dataset?.height || 0);
   let elementWidth = Number(turnTableList.value[0]?.dataset?.width || 0);
   // 使用角度比例计算高度
   let rotateRad = Math.abs((Number($props.rotateX) * Math.PI) / 180);
-  let scaleY = ((1 - Number($props.scale)) * elementHeight) / 2 * - baseRotateX;
+  let scaleY = (((1 - Number($props.scale)) * elementHeight) / 2) * -baseRotateX;
   let offsetY = toCurPX(Number($props.offsetY));
   if ($props.front) {
     totalHeight =
       elementHeight * (1 - Math.sin(rotateRad)) +
       2 * (radius + (elementHeight - elementWidth) / 2) * Math.sin(rotateRad) +
-      (Number($props.rotateX) <= 0 ? offsetY : -offsetY) - Math.abs(scaleY);
+      (Number($props.rotateX) <= 0 ? offsetY : -offsetY) -
+      Math.abs(scaleY);
   } else {
-    totalHeight = elementHeight * (1 - Math.sin(rotateRad)) + (2 * radius + elementHeight) * Math.sin(rotateRad) + (Number($props.rotateX) <= 0 ? offsetY : -offsetY) - scaleY;
+    totalHeight =
+      elementHeight * (1 - Math.sin(rotateRad)) +
+      (2 * radius + elementHeight) * Math.sin(rotateRad) +
+      (Number($props.rotateX) <= 0 ? offsetY : -offsetY) -
+      scaleY;
   }
 
   if (totalHeight < elementHeight) {
@@ -487,9 +552,9 @@ watch(
 );
 
 /** 初始化 */
-function initEl() {
+const initEl = () => {
   disableTranstion.value = true;
-  turnTableList.value = Array.from((turnTableListEl.value?.children || [])as HTMLCollectionOf<HTMLDivElement>);
+  turnTableList.value = Array.from((turnTableListEl.value?.children || []) as HTMLCollectionOf<HTMLDivElement>);
   curIndex.value = $props.initIndex;
   baseDeg.value = 360 / turnTableList.value.length;
   curDeg.value = curIndex.value * baseDeg.value * -1;
@@ -512,13 +577,13 @@ function initEl() {
     }
     startAutoPlay();
   });
-}
+};
 
 /** 監聽插槽變化 */
 watch(
   () => $slots.default?.(),
   (val) => {
-    if(!val) return;
+    if (!val) return;
     // 長度不變不初始化
     let children = val?.[0]?.children;
     if (turnTableList.value?.length === children.length) {
