@@ -2,8 +2,8 @@
 <template>
   <div class="stillPhotos">
     <div class="row">
-      <video ref="video" muted="muted"></video>
-      <playCanvas ref="canvas" :list="arr"></playCanvas>
+      <video ref="video" muted="muted" v-show="false"></video>
+      <visualization :list="arr" ref="visualization"></visualization>
     </div>
     <div class="row">
       <div class="btn" @click="clickPlay">{{ streaming ? '結束' : '開始' }}</div>
@@ -14,9 +14,9 @@
   </div>
 </template>
 <script>
-import playCanvas from "./playCanvas";
+import visualization from "./visualization";
 export default {
-  components: { playCanvas },
+  components: { visualization },
   data() {
     return {
       video: null,
@@ -24,7 +24,7 @@ export default {
       mediaStream: null,
       recording: false,
       arr: [],
-      level: 1, // 可視化柱子等級
+      level: 3, // 可視化柱子等級
     };
   },
   mounted() {
@@ -42,8 +42,8 @@ export default {
             cursor: "always",
           },
           audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
+            echoCancellation: false,
+            noiseSuppression: false,
             sampleRate: 44100,
           },
         })
@@ -68,11 +68,11 @@ export default {
         });
     },
     visualization () {
-            // 創建音頻對象
+          // 創建音頻對象
           var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
           // 創建可視化處理
           var analyser = audioCtx.createAnalyser();
-          analyser.fftSize = 16*(2**this.level); // 可視化柱子數量[32, 32768]
+          analyser.fftSize = 2**(5 + this.level); // 可視化柱子數量[32, 32768]
           // 創建音源
           var source = audioCtx.createMediaStreamSource(this.mediaStream);
           source.connect(analyser);
@@ -105,10 +105,10 @@ export default {
           a.download = `test.mp4`;
           a.click();
         };
-        // 开始录制
-        this.mediaRecorder.start();
-        this.recording = true;
       }
+      // 开始录制
+      this.mediaRecorder.start();
+        this.recording = true;
     },
     clickPlay () {
         if (this.streaming) {

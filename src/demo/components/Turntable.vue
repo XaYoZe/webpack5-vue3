@@ -288,7 +288,7 @@ const touchendEvent = (event: TouchEvent & MouseEvent) => {
         index = curDeg.value === 0 ? 0 : 360 / baseDeg.value - Math.abs((curDeg.value % 360) / baseDeg.value);
       }
       /** 處理精度問題 */
-      curIndex.value = Math.round(index);
+      curIndex.value = Math.round(index % turnTableList.value.length);
       startAutoPlay();
     });
   } else {

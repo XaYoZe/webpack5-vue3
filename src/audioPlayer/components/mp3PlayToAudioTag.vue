@@ -1,4 +1,5 @@
 <template>
+ <playCanvas :list="arr"></playCanvas>
   <div class='mp3Play'>
     <audio
       ref="audio"
@@ -26,8 +27,10 @@
   </div>
 </template>
 <script>
+import playCanvas from './playCanvas.vue';
 // 使用浏览器自带audio标签,进行实现可视化, iOS会有兼容问题
 export default {
+  components: {playCanvas},
   data () {
     return {
       // src: 'https://www.miyachat.com/resource/mp3/10441495.mp3',
@@ -41,7 +44,8 @@ export default {
       analyser: null,
       config: { attributes: true, childList: true, subtree: true },
       arr: [],
-      index: 0
+      index: 0,
+      level: 3
     }
   },
   mounted () {
@@ -72,7 +76,7 @@ export default {
           let source = this.audioCtx.createMediaElementSource(this.audio);
           let gainNode = this.audioCtx.createGain();
           this.analyser = this.audioCtx.createAnalyser();
-	        // this.analyser.fftSize =  16 * 2;
+	        this.analyser.fftSize =  32*(2**this.level);
           source.connect(gainNode); // 聲音控制
           source.connect(this.analyser);  // 可視化控制
           gainNode.connect(this.audioCtx.destination);

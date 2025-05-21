@@ -49,7 +49,7 @@
 </template>
 <script>
 import El2Image from '@js/el2Img';
-import domToImage from '../assets/js/dom-to-image';
+// import domToImage from '../assets/js/dom-to-image';
 export default {
   data() {
     return {

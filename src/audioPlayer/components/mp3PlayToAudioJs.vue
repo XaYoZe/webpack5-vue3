@@ -135,14 +135,13 @@ export default {
     visualization () {
       // console.log(this.audioCtx.getOutputTimestamp());
       // 音波圖
-      //   var arr = new Uint8Array(this.analyser.fftSize);
-      //   this.analyser.getByteTimeDomainData(arr);
+        // var arr = new Uint8Array(this.analyser.fftSize);
+        // this.analyser.getByteTimeDomainData(arr);
       // 音頻圖
       var arr = new Uint8Array(this.analyser.frequencyBinCount);
-      var state = this.audioCtx.state;
       this.analyser.getByteFrequencyData(arr);
+      var state = this.audioCtx.state;
       this.arr = arr;
-      this.$refs.visualization.createItem();
       this.runTime = this.audioCtx.currentTime;
       if (state === "running") {
         this.isPlay = true;
@@ -165,7 +164,7 @@ export default {
      */
     startPlay (timeline = 0) {
         this.AudioBufferSourceNode = this.audioCtx.createBufferSource();
-        // this.AudioBufferSourceNode.playbackRate.value = 1.2 // 速度控制
+        this.AudioBufferSourceNode.playbackRate.value = 1.2 // 速度控制
         
         console.log(11111111111, this.audioCtx) 
         this.AudioBufferSourceNode.onended = () => { // 音樂播放結束觸發
@@ -196,11 +195,11 @@ export default {
     initAudio () {
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       this.analyser = this.audioCtx.createAnalyser(); // 可视化处理模块
-      this.analyser.smoothingTimeConstant = 0.91; // 可視化改變速度
+      this.analyser.smoothingTimeConstant = 0.8; // 可視化改變速度
       this.gainNode = this.audioCtx.createGain(); // 音频处理模块
-      this.analyser.fftSize = 32*(2**this.level); // 可視化柱子數量
+      this.analyser.fftSize = 2**(5 +this.level); // 可視化柱子數量
       this.gainNode.connect(this.audioCtx.destination); // 实例链接到音频处理
-      console.log('柱子數量:', 32*(2**this.level))
+      console.log('柱子數量:',  2**(5 +this.level))
     },
     // 點擊列表 
     clickAudioList (name) {
@@ -236,10 +235,12 @@ export default {
   margin: 0 auto;
   position: relative;
   display: flex;
+  .view {
+    background: url('../static/29.jpg') no-repeat top / cover;
+  }
   .visualization {
     width: 800px;
     height: 500px;
-    // background: url('../static/29.jpg') no-repeat top / cover;
     display: flex;
     justify-content: space-around;
     align-items: flex-end;
@@ -247,7 +248,7 @@ export default {
   .ctrl {
     height: 100px;
     width: 800px;
-    background: rgba(64, 224, 208, 0.451);
+    background: rgba(64, 224, 208, 0.8);
     display: flex;
     align-items: center;
     justify-content: space-around;

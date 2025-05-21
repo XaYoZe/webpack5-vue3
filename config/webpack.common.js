@@ -146,7 +146,7 @@ module.exports = env => {
             }
           }]
         }, {
-          test: /\.[jt]sx?$/, // js文件解析
+          test: /\.([jt]sx?|mjs?)$/, // js文件解析
           exclude: /node_modules/, // 排除符合条件的模块
           use: [{
           // 开启多进程打包。 
@@ -232,8 +232,9 @@ module.exports = env => {
       })
     ],
     resolve: {
-      extensions: ['.js', '.json', 'scss', 'css', '.vue'], // 引入文件可以省略後綴
+      extensions: ['.ts', '.js', '.json', 'scss', 'css', '.vue'], // 引入文件可以省略後綴
       alias: { // 別名
+        'PopupCtrl': path.resolve(__dirname, '../assets/components/popupCtrl/'),
         '@Assets': path.resolve(__dirname, '../assets'),
         '@Config': path.resolve(__dirname, '../config'),
         '@Utils': path.resolve(__dirname, '../assets/utils'),
@@ -243,7 +244,7 @@ module.exports = env => {
         '@style': path.join(entryPath, './assets/style'),
         '@img': path.join(entryPath, './assets/image'),
         '@js': path.join(entryPath, './assets/js'),
-        '@store': path.join(entryPath, './store'),
+        '@router': path.join(entryPath, './router'),
         '@route': path.join(entryPath, './route'),
         '@pages': path.join(entryPath, './pages'),
       }

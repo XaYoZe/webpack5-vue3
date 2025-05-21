@@ -65,7 +65,7 @@ class VapGl {
   webgl: WebGLRenderingContext;
   program: WebGLProgram;
   textureList: WebGLTexture[] = [];
-  constructor(config) {
+  constructor(config: {el: HTMLCanvasElement}) {
     this.canvas = config.el;
     this.initCanvas();
     (window as any).vapGl = this;
@@ -189,7 +189,7 @@ class VapGl {
     this.webgl.vertexAttribPointer(a_alpha_cood, 2, this.webgl.FLOAT, false, 0, 0);
   }
 
-  drawScene(gl) {
+  drawScene(gl: WebGLRenderingContext) {
     // 设置清空画布的颜色
     gl.clearColor(0.0, 0.0, 0.0, 0.0);
     // 清空画布
@@ -253,7 +253,7 @@ class VapGl {
     console.log(gl.getProgramInfoLog(program));
   }
 
-  createTexture(gl: WebGLRenderingContext, image: HTMLImageElement, index): WebGLTexture {
+  createTexture(gl: WebGLRenderingContext, image: HTMLImageElement, index: number): WebGLTexture {
     if (this.textureList[index]) {
       gl.activeTexture(this.webgl.TEXTURE0 + index);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
