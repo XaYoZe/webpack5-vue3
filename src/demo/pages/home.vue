@@ -10,7 +10,14 @@
     <div class="tabs">
         <div class="tab" v-for="(tab) in tabs" :key="tab.name" @click="tabName = tab.name">{{ tab.title }}</div>
     </div>
-    <component :is="tabName"></component>
+    <div class="container">
+      <template v-if="tabName === 'listScroll'">
+        <listScrollV2 front :list="scrollList">
+          <div class="scroll_item" v-for="i in scrollList" :key="i">{{ i }}</div>
+        </listScrollV2>
+      </template>
+      <component v-else :is="tabName"></component>
+    </div>
   </div>
 </template>
 <script>
@@ -33,6 +40,7 @@ export default {
         num: 1, // 显示的数字
         addNum: 111,
         tabName: 'listScroll',
+        scrollList: Array.from(new Array(10), (item, index) => index),
         tabs: [
             {name: 'listScroll', title: '轉盤'},
             {name: 'calendar', title: '日曆'},
@@ -61,6 +69,7 @@ export default {
 <style lang="scss" scoped>
 .home {
     display: flex;
+    width: 100%;
     .tabs {
         width: 200px;
         background: #eee8;
@@ -71,6 +80,10 @@ export default {
             border: 1px solid salmon;
             color: #fff;
         }
+    }
+    .container {
+      flex: 1;
+      height: 500px;
     }
     .scroll_item {
       width: 50px;

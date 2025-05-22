@@ -21,7 +21,7 @@ export default {
           backgroundAlpha: 0,
         //   resolution: window.devicePixelRatio,
         },
-      type: 0,
+      type: 1,
       length: 10,
       graphicsCache: [],
       topBarCache: [],
@@ -153,6 +153,9 @@ export default {
     }
   },
   watch: {
+    list () {
+      this.createItem();
+    }
   }
 }
 </script>

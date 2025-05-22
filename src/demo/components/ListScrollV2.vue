@@ -117,7 +117,8 @@ export default {
       handler  () {
         if (this.list.length > 0) {
           this.$nextTick(() => {
-            this.listEl = this.$refs.list;
+            this.listEl = this.$refs.listEl;
+            console.log(this.listEl)
             this.listItems = this.listEl.children;
             this.initEl()
           })
@@ -143,7 +144,7 @@ export default {
     --opacity: 0.8; // 背后元素透明度
     $opacity: var(--opacity); // 旋轉半徑
     $radius: var(--radius); // 旋轉半徑
-    $rotateZ: calc(0 / 360);
+    $rotateZ: calc(-50 / 360);
     $rotateY: calc(360 / 360);
     $rotateX: calc(0 / 360);
     $scale: var(--scale); // 縮小程度

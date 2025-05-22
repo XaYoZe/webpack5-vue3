@@ -15,7 +15,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { ref, defineProps, computed, reactive, onMounted, Ref } from 'vue'
+import { nextTick, ref, defineProps, computed, reactive, onMounted, Ref } from 'vue'
 
 const emit = defineEmits(['active'])
 
@@ -109,7 +109,7 @@ let animationiteration = (e) => {
 const initEl = () => {
   Array.from(listItems, (item, i) => {
     // item.style.setProperty('--delay', `-${(props.time - (i * props.time) / listLength.value) + (listLength.value * 100000) + offsetTime.value}s`);
-    item.style.setProperty('--delay', `-${props.time * (1 - i / listLength.value) + listLength.value * 100000 + offsetTime.value}s`);
+        item.style.setProperty('--delay', `-${props.time * (1 - i / listLength.value) + listLength.value * 100000 + offsetTime.value}s`);
     item.removeEventListener('animationiteration', animationiteration, this);
     item.addEventListener('animationiteration', animationiteration, this);
     item.dataset.id = i
@@ -118,8 +118,7 @@ const initEl = () => {
 onMounted(() => {
   listItems = listEl.value.children
   initEl()
-  play.value  = true;
-  console.log(1111, listItems)
+    play.value  = true;
 })
 
 // 触碰屏幕
@@ -157,12 +156,12 @@ const touchmove = (e) => {
     --delay: 10s;
     --transfromX: -50%;
     --transfromY: -50%;
-    --radius: -200px; // 旋轉半徑
+    --radius: -400px; // 旋轉半徑
     --opacity: 0.8; // 背后元素透明度
     $opacity: var(--opacity); // 旋轉半徑
     $radius: var(--radius); // 旋轉半徑
-    $rotateZ: calc(30 / 360);
-    $rotateY: calc(0 / 360);
+    $rotateZ: calc(0 / 360);
+    $rotateY: calc(100 / 360);
     $rotateX: calc(0 / 360);
     $scale: var(--scale); // 縮小程度
     $time: var(--time); // 時間
@@ -176,20 +175,20 @@ const touchmove = (e) => {
       $transfromZ1: calc($radius / 750 * 100vw * -1); 
       $transfromZ2: calc($radius / 750 * 100vw);
     }
-    @keyframes default {
-      0% {
-        opacity: 1;
-        transform: translate3d($transfromX, $transfromY, $transfromZ1) rotate3d($rotateX, $rotateY, $rotateZ, 360deg) translate3d(0, 0, $transfromZ2) scale3d(1, 1, 1);
-      }
-      50% {
-        opacity: $opacity;
-        transform: translate3d($transfromX, $transfromY, $transfromZ1) rotate3d($rotateX, $rotateY, $rotateZ, 180deg) translate3d(0, 0, $transfromZ2) scale3d($scale, $scale, 1);
-      }
-      100% {
-        opacity: 1;
-        transform: translate3d($transfromX, $transfromY, $transfromZ1) rotate3d($rotateX, $rotateY, $rotateZ, 0)translate3d(0, 0, $transfromZ2) scale3d(1, 1, 1);
-      }
-    }
+    // @keyframes default {
+    //   0% {
+    //     opacity: 1;
+    //     transform: translate3d($transfromX, $transfromY, $transfromZ1) rotate3d($rotateX, $rotateY, $rotateZ, 360deg) translate3d(0, 0, $transfromZ2) scale3d(1, 1, 1);
+    //   }
+    //   50% {
+    //     opacity: $opacity;
+    //     transform: translate3d($transfromX, $transfromY, $transfromZ1) rotate3d($rotateX, $rotateY, $rotateZ, 180deg) translate3d(0, 0, $transfromZ2) scale3d($scale, $scale, 1);
+    //   }
+    //   100% {
+    //     opacity: 1;
+    //     transform: translate3d($transfromX, $transfromY, $transfromZ1) rotate3d($rotateX, $rotateY, $rotateZ, 0)translate3d(0, 0, $transfromZ2) scale3d(1, 1, 1);
+    //   }
+    // }
     @keyframes default {
       0% {
         opacity: 1;

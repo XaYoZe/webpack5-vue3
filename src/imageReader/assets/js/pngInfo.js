@@ -87,7 +87,7 @@ class PngInfo {
               `压缩格式：${compression}\n`,
               `过滤方式：${filter}\n`,
               `扫描方式：${interlace}\n`,
-              `数据长度：${length}`
+              `数据塊长度：${length}`
             )
           } else
           if (chunkType === 'pHYs') {
@@ -97,21 +97,21 @@ class PngInfo {
             let unit = sliceData(1).toNum();
             console.log(crc32(chunkData), chunkCrc.toNum())
             if (unit === 1) {
-              console.log(` x dpi：${x / 39.3700787}\n`, `y dpi：${y / 39.3700787}\n`, `unit：${unit}\n`, `数据长度：${length}`)
+              console.log(` x dpi：${x / 39.3700787}\n`, `y dpi：${y / 39.3700787}\n`, `unit：${unit}\n`, `数据塊长度：${length}`)
             } else {
-              console.log(` x：${x}\n`, `y：${y}\n`, `unit：${unit}\n`, `数据长度：${length}`)
+              console.log(` x：${x}\n`, `y：${y}\n`, `unit：${unit}\n`, `数据塊长度：${length}`)
             }
           } else
           if (chunkType === 'IDAT') {
             let sliceData = BitReader.Slice(chunkData);
 
-            console.log(`数据长度：${length}`)
+            console.log(`IDAT 数据塊长度：${length}`, chunkData)
           } else 
           if (chunkType === 'acTL') {
             let sliceData = BitReader.Slice(chunkData);
             let numFrames = sliceData(4).toNum();
             let numPlays = sliceData(4).toNum();
-            console.log(`numFrames：${numFrames}\n`, `numPlays：${numPlays}\n`, `数据长度：${length}`)
+            console.log(`numFrames：${numFrames}\n`, `numPlays：${numPlays}\n`, `数据塊长度：${length}`)
             // console.log(chunkType, length, chunkData);
           } else if (chunkType === 'fdAT') {
             let sliceData = BitReader.Slice(chunkData);
@@ -126,10 +126,20 @@ class PngInfo {
             let blendOperation = sliceData(1).toNum();
             console.log(`序列号：${sequenceNumber}\n`, `宽度：${width}\n`, Number('0b' + width.toBit()))
             // console.log(chunkType, length, chunkData);
+          } else if (chunkType === 'tRNS') {
+            console.log('透明数据块', chunkType, chunkData)
+          } else if (chunkType === 'PLTE') {
+            let colors = [];
+            Array.from(chunkData, (item, i) => {
+              if ((i)%3 === 0) {
+                colors.push([]);
+              }
+              colors[colors.length - 1].push(item);
+            })
+            console.log('调色板', chunkType, chunkData, colors);
+          } else if (chunkType === 'iTXt' || chunkType === 'tEXt' || chunkType === 'zTXt') {
+            console.log(length, chunkType, chunkData.toStr(), crc);
           }
-          // if (chunkType === 'iTXt' || chunkType === 'tEXt' || chunkType === 'zTXt') {
-          //   console.log(length, chunkType, chunkData.toStr(), crc);
-          // }
           // console.log(chunkType, length);
         }
         while (chunkType !== 'IEND') {

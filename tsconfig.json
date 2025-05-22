@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
+    "allowSyntheticDefaultImports": true,
+    "allowJs": false, // 允许编译 javascript 文件
+    "checkJs": false, // 报告 javascript 文件中的错误
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "importHelpers": true,
+    "jsx": "preserve",
+    "lib": ["esnext", "dom", "dom.iterable", "scripthost"],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true, // 报告 switch 语句的 fallthrough 错误。（即，不允许 switch 的 case 语句贯穿）
+    "noImplicitAny": false, // 在表达式和声明上有隐含的 any类型时报错
+    "noImplicitThis": false,
+    "paths": {
+      "@/*": ["src/*"],
+      "PopupCtrl": ["assets/components/popupCtrl"],
+      "@Assets": ["assets/"],
+      "@Config": ["config"],
+      "@Utils": ["assets/utils"],
+      "@src": ["src/*/"],
+      "@cpts": ["src/*/components"],
+      "@static":  ["src/*/static"],
+      "@style": ["src/*/assets/style"],
+      "@img": ["src/*/assets/image"],
+      "@js": ["src/*/assets/js"],
+      "@store": ["src/*/storer"],
+      "@router": ["src/*/router"],
+      "@pages": ["src/*/pages"],
+    },
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "sourceMap": true,
+    "target": "esnext",
+    "types": ["webpack-env", "node"],
+    "typeRoots": ["node_modules/@types"],
+    "useDefineForClassFields": true
+  },
+  "include": ["src/**/*", "typings/*"],
+  "exclude": ["node_modules"]
+}

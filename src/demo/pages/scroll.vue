@@ -1,10 +1,16 @@
 <template>
   <div class="scroll">
-    <ListScroll :list="list" :radius="375" :time="30" reverse >
+    <!-- <ListScroll :list="list" :radius="200" :time="50" reverse >
       <div class="scroll_item" v-for="(item, i) in list" :key="i" >
         {{ i }}
       </div>
-    </ListScroll>
+    </ListScroll> -->
+    
+    <ListScrollV2 :list="list" front :radius="300" :time="50" reverse >
+      <div class="scroll_item" v-for="(item, i) in list" :key="i" >
+        {{ i }}
+      </div>
+    </ListScrollV2>
   </div>
 </template>
 <script setup lang="ts">
@@ -20,7 +26,7 @@ console.log(list)
   height: 500px;
   background: #eee;
   .scroll_item {
-    width: 50px;
+    width: 150px;
     height: 150px;
     // background: #eac;
     @for $i from 1 through 20 {

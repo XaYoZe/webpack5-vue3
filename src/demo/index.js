@@ -1,7 +1,10 @@
 import { createApp } from 'vue';
 import index from './index.vue';
 import '@src/assets/style/index.scss'
-import router from '@src/router';
+import router from '@router/index';
+import { createPinia } from 'pinia'
+import PopupCtrl from 'PopupCtrl';
+
 
 if (!window.eruda && RUN_ENV === 'local' && location.href.indexOf('debug') !== -1) {
   let debugToolsSrc = 'https://cdnjs.cloudflare.com/ajax/libs/eruda/2.4.1/eruda.min.js'
@@ -9,7 +12,7 @@ if (!window.eruda && RUN_ENV === 'local' && location.href.indexOf('debug') !== -
   debugToolsDom.src = debugToolsSrc;
   document.body.append(debugToolsDom);
   debugToolsDom.onload = () => {
-    eruda.init();
+    window.eruda.init();
   }
 }
 
@@ -24,5 +27,7 @@ webpackContext.keys().forEach(item => {
 })
 
 app.use(router); // 使用路由管理
+app.use(createPinia());
+app.use(PopupCtrl);
 
 app.mount('#app'); // 只能在use之后使用
